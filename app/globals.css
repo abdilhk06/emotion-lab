@@ -94,3 +94,30 @@ h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; line-height: 1.2; }
   .auth-visual { display: flex; flex-direction: column; justify-content: space-between; }
   .auth-form-wrap { padding: 60px 80px; }
 }
+
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; background: linear-gradient(180deg, #fdfbfc 0%, #f5f0f7 100%); }
+.app-sidebar { border-right: 1px solid var(--bordure); padding: 24px 18px; background: #fff; display: flex; flex-direction: column; gap: 20px; }
+.sidebar-logo { display: inline-flex; align-items: center; gap: 10px; color: var(--plum); text-decoration: none; font-family: "Poppins", sans-serif; font-weight: 700; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 8px; }
+.sidebar-link { display: block; padding: 10px 12px; border-radius: 10px; text-decoration: none; color: var(--texte-gris); font-weight: 500; }
+.sidebar-link.active { background: var(--fond-lavande); color: var(--plum); }
+.app-main { padding: 28px; }
+.app-main-header h1 { margin: 0 0 14px; font-size: 30px; color: var(--plum); }
+.app-main-content { display: grid; gap: 18px; }
+.dashboard-greeting h2 { margin: 0; font-size: 34px; }
+.dashboard-label { margin: 0 0 6px; color: var(--texte-gris); }
+.dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.dashboard-card { background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: 18px; }
+.dashboard-card h2 { margin: 0 0 8px; font-size: 18px; }
+.dashboard-card p { margin: 0 0 10px; color: var(--texte-gris); }
+.dashboard-card-value { color: var(--plum) !important; font-weight: 700; font-family: "Poppins", sans-serif; }
+.dashboard-card-link { color: var(--bleu-ciel); text-decoration: none; font-weight: 600; }
+.dashboard-cta { border: 1px dashed #c8b8d1; background: #fff; border-radius: 16px; padding: 18px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.dashboard-cta p { margin: 0; color: var(--texte-gris); }
+.logout-block { padding-top: 8px; }
+.dashboard-error { margin: 0; color: #b42318; font-size: 14px; }
+@media (max-width: 1023px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .app-sidebar { border-right: 0; border-bottom: 1px solid var(--bordure); }
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
