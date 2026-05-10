@@ -1,2 +1,25 @@
-export function AuthVisualPanel(){return <aside className="auth-visual"><a className="logo" href="#" onClick={(e)=>e.preventDefault()}><span aria-label="Emotion Lab" className="brand-logo brand-logo-sm logo-img" role="img"/><span>Emotion Lab</span></a><div className="auth-hero"><h2>Te revoir.<br/>Continuer ensemble.</h2><p>Reprends là où tu t&apos;étais arrêté·e — tes résultats, tes Buddies et tes conversations sont sauvegardés.</p></div><div className="auth-testimonial">La régularité, c&apos;est ce qui change tout. Bienvenue à nouveau.<div style={{marginTop:"10px",fontWeight:600,fontSize:"13px"}}>— L&apos;équipe Emotion Lab</div></div></aside>}
-
+ï»¿export function AuthVisualPanel() {
+  return (
+    <aside className="auth-visual">
+      <div className="logo">
+        <span aria-label="Emotion Lab" className="brand-logo brand-logo-sm logo-img" role="img" />
+        <span>Emotion Lab</span>
+      </div>
+      <div className="auth-hero">
+        <h2>
+          Te revoir.
+          <br />
+          Continuer ensemble.
+        </h2>
+        <p>
+          Reprends la ou tu t&apos;etais arreteÂ·e - tes resultats, tes Buddies et tes conversations
+          sont sauvegardes.
+        </p>
+      </div>
+      <div className="auth-testimonial">
+        La regularite, c&apos;est ce qui change tout. Bienvenue a nouveau.
+        <div style={{ marginTop: "10px", fontWeight: 600, fontSize: "13px" }}>- L&apos;equipe Emotion Lab</div>
+      </div>
+    </aside>
+  );
+}

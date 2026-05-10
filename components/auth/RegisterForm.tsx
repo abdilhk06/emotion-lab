@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -24,6 +24,7 @@ export function RegisterForm() {
     if (password !== confirmPassword) return setError("Les mots de passe ne correspondent pas.");
     setSubmitting(true);
     try {
+      const supabase = getSupabaseClient();
       const { data, error: signUpError } = await supabase.auth.signUp({ email: email.trim(), password });
       if (signUpError) return setError(signUpError.message);
       if (data.user) {
