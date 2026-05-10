@@ -25,11 +25,19 @@ export function RegisterForm() {
     setSubmitting(true);
     try {
       const supabase = getSupabaseClient();
-      const { data, error: signUpError } = await supabase.auth.signUp({ email: email.trim(), password });
-      if (signUpError) return setError(signUpError.message);
-      if (data.user) {
-        const { error: profileError } = await supabase.from("profiles").insert({ id: data.user.id, email: email.trim(), pseudo: pseudo.trim(), study_level: studyLevel });
-        if (profileError) return setError(profileError.message);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            pseudo,
+            study_level: studyLevel,
+          },
+        },
+      });
+      if (error) {
+        setError(error.message);
+        return;
       }
       void consent;
       router.push("/verify-email");
