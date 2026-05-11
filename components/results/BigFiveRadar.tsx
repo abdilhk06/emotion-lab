@@ -35,13 +35,22 @@ function scorePoint(angle: number, score: number) {
   return polarToCartesian(angle, radius);
 }
 
-export function BigFiveRadar({ scores }: { scores: BigFiveScores }) {
+export function BigFiveRadar({
+  scores,
+  title = "Tes super-pouvoirs",
+  description,
+}: {
+  scores: BigFiveScores;
+  title?: string;
+  description?: string;
+}) {
   const scorePoints = RADAR_LABELS.map((item) => scorePoint(item.angle, scores[item.key]));
   const topForces = [...FORCE_META].sort((a, b) => scores[b.key] - scores[a.key]).slice(0, 3);
 
   return (
     <section className="results-section">
-      <div className="results-section-title">Tes super-pouvoirs</div>
+      <div className="results-section-title">{title}</div>
+      {description ? <p className="results-section-description">{description}</p> : null}
       <div className="big-five-grid">
         <div className="radar-card">
           <svg className="radar-svg" viewBox="0 0 300 300" role="img" aria-label="Radar Big Five">

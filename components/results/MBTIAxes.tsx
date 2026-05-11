@@ -5,10 +5,19 @@ export type MBTIAxisItem = {
   value: number;
 };
 
-export function MBTIAxes({ axes }: { axes: MBTIAxisItem[] }) {
+export function MBTIAxes({
+  axes,
+  title = "Tes 4 dimensions",
+  description,
+}: {
+  axes: MBTIAxisItem[];
+  title?: string;
+  description?: string;
+}) {
   return (
     <section className="results-section">
-      <div className="results-section-title">Tes 4 dimensions</div>
+      <div className="results-section-title">{title}</div>
+      {description ? <p className="results-section-description">{description}</p> : null}
       <div className="axes-grid">
         {axes.map((axis) => (
           <div className="axe-row" key={`${axis.leftLabel}-${axis.rightLabel}`}>
