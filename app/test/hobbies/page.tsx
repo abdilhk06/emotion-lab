@@ -8,15 +8,12 @@ import { HobbyCategory } from "@/components/test/HobbyCategory";
 import { TestHeader } from "@/components/test/TestHeader";
 import { ValidateHobbiesButton } from "@/components/test/ValidateHobbiesButton";
 import { HOBBY_CATEGORIES, MAX_HOBBIES, MIN_HOBBIES } from "@/lib/data/hobbies";
+import { clearLegacyTestFlowStorage, getUserTestFlowStorageKey } from "@/lib/test-flow-storage";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
-const HOBBIES_STORAGE_KEY = "emotionlab_test_hobbies";
-
-function readStoredHobbies(): string[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const raw = localStorage.getItem(HOBBIES_STORAGE_KEY);
+function readStoredHobbies(userId: string): string[] {
+  const storageKey = getUserTestFlowStorageKey(userId, "hobbies");
+  const raw = localStorage.getItem(storageKey);
   if (!raw) {
     return [];
   }
@@ -25,18 +22,53 @@ function readStoredHobbies(): string[] {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
   } catch {
-    localStorage.removeItem(HOBBIES_STORAGE_KEY);
+    localStorage.removeItem(storageKey);
     return [];
   }
 }
 
 export default function TestHobbiesPage() {
   const router = useRouter();
-  const [selectedHobbies, setSelectedHobbies] = useState<string[]>(readStoredHobbies);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [selectedHobbies, setSelectedHobbies] = useState<string[]>([]);
 
   useEffect(() => {
-    localStorage.setItem(HOBBIES_STORAGE_KEY, JSON.stringify(selectedHobbies));
-  }, [selectedHobbies]);
+    let active = true;
+
+    const loadUserHobbies = async () => {
+      try {
+        clearLegacyTestFlowStorage();
+        const supabase = getSupabaseClient();
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error || !user) {
+          router.replace("/login");
+          return;
+        }
+
+        if (active) {
+          setUserId(user.id);
+          setSelectedHobbies(readStoredHobbies(user.id));
+        }
+      } catch {
+        if (active) router.replace("/login");
+      }
+    };
+
+    void loadUserHobbies();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (!userId) return;
+    localStorage.setItem(getUserTestFlowStorageKey(userId, "hobbies"), JSON.stringify(selectedHobbies));
+  }, [selectedHobbies, userId]);
 
   const selectedSet = useMemo(() => new Set(selectedHobbies), [selectedHobbies]);
   const selectedCount = selectedHobbies.length;
@@ -59,7 +91,9 @@ export default function TestHobbiesPage() {
     if (!canSubmit) {
       return;
     }
-    localStorage.setItem(HOBBIES_STORAGE_KEY, JSON.stringify(selectedHobbies));
+    if (userId) {
+      localStorage.setItem(getUserTestFlowStorageKey(userId, "hobbies"), JSON.stringify(selectedHobbies));
+    }
     router.push("/test/loading");
   };
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { clearLegacyTestFlowStorage } from "@/lib/test-flow-storage";
 
 export function LoginForm() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export function LoginForm() {
     setSubmitting(true);
 
     try {
+      clearLegacyTestFlowStorage();
       const supabase = getSupabaseClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),

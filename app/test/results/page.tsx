@@ -9,8 +9,8 @@ import { MBTIAxes, type MBTIAxisItem } from "@/components/results/MBTIAxes";
 import { ResultsHero } from "@/components/results/ResultsHero";
 import type { BigFiveScores } from "@/lib/calculate-result";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { clearLegacyTestFlowStorage, getUserTestFlowStorageKey } from "@/lib/test-flow-storage";
 
-const RESULT_STORAGE_KEY = "emotionlab_test_result";
 const AVAILABLE_ROUTES = new Set(["/dashboard", "/test/intro"]);
 
 type StoredResult = {
@@ -43,9 +43,10 @@ function clamp(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function readLocalResult(): StoredResult | null {
+function readLocalResult(userId: string): StoredResult | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(RESULT_STORAGE_KEY);
+  const storageKey = getUserTestFlowStorageKey(userId, "result");
+  const raw = localStorage.getItem(storageKey);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<StoredResult>;
@@ -59,7 +60,7 @@ function readLocalResult(): StoredResult | null {
       calculated_at: parsed.calculated_at,
     };
   } catch {
-    localStorage.removeItem(RESULT_STORAGE_KEY);
+    localStorage.removeItem(storageKey);
     return null;
   }
 }
@@ -150,7 +151,8 @@ export default function TestResultsPage() {
   useEffect(() => {
     const run = async () => {
       setState({ status: "loading" });
-      const fallback = readLocalResult();
+      clearLegacyTestFlowStorage();
+      let fallback: StoredResult | null = null;
 
       try {
         const supabase = getSupabaseClient();
@@ -160,17 +162,16 @@ export default function TestResultsPage() {
         } = await supabase.auth.getUser();
 
         if (userError) {
-          if (fallback) setState({ status: "ready", result: fallback });
-          else setState({ status: "error", message: userError.message });
+          setState({ status: "error", message: userError.message });
           return;
         }
 
         if (!user) {
-          if (fallback) setState({ status: "ready", result: fallback });
-          else setState({ status: "empty" });
+          setState({ status: "empty" });
           return;
         }
 
+        fallback = readLocalResult(user.id);
         const { data, error } = await supabase
           .from("test_results")
           .select("mbti_code, mbti_name, big_five_scores, stress_score, balance_score, created_at")

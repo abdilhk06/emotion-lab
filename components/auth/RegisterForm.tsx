@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { clearLegacyTestFlowStorage, clearUserTestFlowStorage } from "@/lib/test-flow-storage";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -24,8 +25,9 @@ export function RegisterForm() {
     if (password !== confirmPassword) return setError("Les mots de passe ne correspondent pas.");
     setSubmitting(true);
     try {
+      clearLegacyTestFlowStorage();
       const supabase = getSupabaseClient();
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -38,6 +40,9 @@ export function RegisterForm() {
       if (error) {
         setError(error.message);
         return;
+      }
+      if (data.user) {
+        clearUserTestFlowStorage(data.user.id);
       }
       void consent;
       router.push("/verify-email");
