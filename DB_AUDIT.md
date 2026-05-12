@@ -23,6 +23,8 @@ No RPC calls were found.
 - Accepting a request could race and create duplicate conversations without a database-level unique pair rule.
 - RLS must prevent users from reading private profiles, modifying other users' results/hobbies, or seeing requests/conversations/messages where they are not a participant.
 - Indexes were needed for latest-result lookups, visible-profile directory queries, request tabs, conversation pair checks, and message timelines.
+- `/test/loading` inserts historical `test_results` rows and reads the latest row by `created_at`; it does not need `on conflict (user_id)`.
+- `/test/loading` upserts `user_hobbies` with `onConflict: "user_id,hobby"`, so production must have a unique or primary key on `(user_id, hobby)`.
 
 ## Fix added
 
@@ -44,6 +46,52 @@ The migration creates or updates:
 - trigger that creates one conversation when a buddy request becomes `accepted`
 - RLS policies for authenticated users
 
+For existing Supabase projects where `user_hobbies` already existed without its primary key, also run:
+
+```sql
+supabase/migrations/20260512223000_ensure_user_hobbies_conflict_key.sql
+```
+
+Exact SQL:
+
+```sql
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.user_hobbies'::regclass
+      and contype = 'p'
+      and conname = 'user_hobbies_pkey'
+  ) then
+    delete from public.user_hobbies
+    where user_id is null
+      or hobby is null
+      or btrim(hobby) = '';
+
+    delete from public.user_hobbies hobby
+    using (
+      select
+        ctid,
+        row_number() over (
+          partition by user_id, hobby
+          order by created_at asc nulls last, ctid asc
+        ) as duplicate_rank
+      from public.user_hobbies
+    ) ranked
+    where hobby.ctid = ranked.ctid
+      and ranked.duplicate_rank > 1;
+
+    alter table public.user_hobbies
+      alter column user_id set not null,
+      alter column hobby set not null;
+
+    alter table public.user_hobbies
+      add constraint user_hobbies_pkey primary key (user_id, hobby);
+  end if;
+end $$;
+```
+
 ## Multi-user RLS model
 
 - Profiles: users manage only their own profile; authenticated users can read visible profiles.
@@ -56,4 +104,4 @@ The migration creates or updates:
 
 ## App code impact
 
-Current app queries match the migration column names. No UI or Supabase client changes were required.
+Current app queries match the migration column names. MVP behavior is result history: `test_results` uses plain `insert`, and result pages fetch the latest result with `order("created_at", { ascending: false }).limit(1)`. Hobby saves use `upsert(..., { onConflict: "user_id,hobby", ignoreDuplicates: true })`, matching `user_hobbies_pkey`.

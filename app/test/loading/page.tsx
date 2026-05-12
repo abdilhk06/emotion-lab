@@ -106,7 +106,7 @@ export default function TestLoadingPage() {
         });
 
         if (resultError) {
-          saveError = resultError.message;
+          saveError = `test_results insert: ${resultError.message}`;
         }
 
         if (!saveError && selectedHobbies.length > 0) {
@@ -121,7 +121,7 @@ export default function TestLoadingPage() {
           });
 
           if (hobbiesError) {
-            saveError = hobbiesError.message;
+            saveError = `user_hobbies upsert: ${hobbiesError.message}`;
           }
         }
       }
