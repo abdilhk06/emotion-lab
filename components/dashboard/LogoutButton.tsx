@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { clearLegacyTestFlowStorage } from "@/lib/test-flow-storage";
 
 export function LogoutButton() {
   const [loading, setLoading] = useState(false);
@@ -20,6 +21,7 @@ export function LogoutButton() {
         setError(signOutError.message);
         return;
       }
+      clearLegacyTestFlowStorage();
       router.replace("/login");
       router.refresh();
     } catch {

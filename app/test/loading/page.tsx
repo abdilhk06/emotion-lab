@@ -5,17 +5,15 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { calculateResult, type AnswerValue, type CalculatedResult } from "@/lib/calculate-result";
 import { getSupabaseClient } from "@/lib/supabase/client";
-
-const ANSWERS_STORAGE_KEY = "emotionlab_test_answers";
-const HOBBIES_STORAGE_KEY = "emotionlab_test_hobbies";
-const RESULT_STORAGE_KEY = "emotionlab_test_result";
+import { clearLegacyTestFlowStorage, getUserTestFlowStorageKey } from "@/lib/test-flow-storage";
 
 type AnswersState = Record<string, AnswerValue>;
 type PersistState = "loading" | "error";
 
-function readAnswers(): AnswersState | null {
+function readAnswers(userId: string): AnswersState | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(ANSWERS_STORAGE_KEY);
+  const storageKey = getUserTestFlowStorageKey(userId, "answers");
+  const raw = localStorage.getItem(storageKey);
   if (!raw) return null;
 
   try {
@@ -23,14 +21,15 @@ function readAnswers(): AnswersState | null {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
     return parsed as AnswersState;
   } catch {
-    localStorage.removeItem(ANSWERS_STORAGE_KEY);
+    localStorage.removeItem(storageKey);
     return null;
   }
 }
 
-function readHobbies(): string[] {
+function readHobbies(userId: string): string[] {
   if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem(HOBBIES_STORAGE_KEY);
+  const storageKey = getUserTestFlowStorageKey(userId, "hobbies");
+  const raw = localStorage.getItem(storageKey);
   if (!raw) return [];
 
   try {
@@ -38,7 +37,7 @@ function readHobbies(): string[] {
     if (!Array.isArray(parsed)) return [];
     return parsed.filter((item): item is string => typeof item === "string");
   } catch {
-    localStorage.removeItem(HOBBIES_STORAGE_KEY);
+    localStorage.removeItem(storageKey);
     return [];
   }
 }
@@ -70,25 +69,9 @@ export default function TestLoadingPage() {
   const runFlow = useCallback(async () => {
     setStatus("loading");
     setError(null);
+    clearLegacyTestFlowStorage();
 
-    const answers = readAnswers();
-    if (!answers || getCountedAnswers(answers) === 0) {
-      setStatus("error");
-      setError("Tes reponses sont introuvables. Relance le test pour continuer.");
-      return;
-    }
-
-    const selectedHobbies = readHobbies();
-    const result: CalculatedResult = calculateResult(answers);
-    const fallbackPayload = {
-      ...result,
-      selected_hobbies: selectedHobbies,
-      calculated_at: new Date().toISOString(),
-    };
-
-    localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(fallbackPayload));
-
-    let saveError: string | null = null;
+    let userId: string | null = null;
 
     try {
       const supabase = getSupabaseClient();
@@ -98,31 +81,66 @@ export default function TestLoadingPage() {
       } = await supabase.auth.getUser();
 
       if (userError) {
-        saveError = userError.message;
-      } else if (user) {
-        const { error: resultError } = await supabase.from("test_results").insert({
-          user_id: user.id,
-          ...result,
+        setStatus("error");
+        setError(`Impossible de verifier ton compte: ${userError.message}`);
+        return;
+      }
+
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      userId = user.id;
+    } catch (caught) {
+      setStatus("error");
+      setError(caught instanceof Error ? caught.message : "Impossible de verifier ton compte.");
+      return;
+    }
+
+    const answers = readAnswers(userId);
+    if (!answers || getCountedAnswers(answers) === 0) {
+      setStatus("error");
+      setError("Tes reponses sont introuvables. Relance le test pour continuer.");
+      return;
+    }
+
+    const selectedHobbies = readHobbies(userId);
+    const result: CalculatedResult = calculateResult(answers);
+    const fallbackPayload = {
+      ...result,
+      selected_hobbies: selectedHobbies,
+      calculated_at: new Date().toISOString(),
+    };
+
+    localStorage.setItem(getUserTestFlowStorageKey(userId, "result"), JSON.stringify(fallbackPayload));
+
+    let saveError: string | null = null;
+
+    try {
+      const supabase = getSupabaseClient();
+      const { error: resultError } = await supabase.from("test_results").insert({
+        user_id: userId,
+        ...result,
+      });
+
+      if (resultError) {
+        saveError = `test_results insert: ${resultError.message}`;
+      }
+
+      if (!saveError && selectedHobbies.length > 0) {
+        const hobbyRows = selectedHobbies.map((hobby) => ({
+          user_id: userId,
+          hobby,
+        }));
+
+        const { error: hobbiesError } = await supabase.from("user_hobbies").upsert(hobbyRows, {
+          onConflict: "user_id,hobby",
+          ignoreDuplicates: true,
         });
 
-        if (resultError) {
-          saveError = `test_results insert: ${resultError.message}`;
-        }
-
-        if (!saveError && selectedHobbies.length > 0) {
-          const hobbyRows = selectedHobbies.map((hobby) => ({
-            user_id: user.id,
-            hobby,
-          }));
-
-          const { error: hobbiesError } = await supabase.from("user_hobbies").upsert(hobbyRows, {
-            onConflict: "user_id,hobby",
-            ignoreDuplicates: true,
-          });
-
-          if (hobbiesError) {
-            saveError = `user_hobbies upsert: ${hobbiesError.message}`;
-          }
+        if (hobbiesError) {
+          saveError = `user_hobbies upsert: ${hobbiesError.message}`;
         }
       }
     } catch (caught) {

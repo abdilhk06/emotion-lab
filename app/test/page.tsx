@@ -7,8 +7,8 @@ import { TestHeader } from "@/components/test/TestHeader";
 import { TestNavigation } from "@/components/test/TestNavigation";
 import { TestStepper } from "@/components/test/TestStepper";
 import { TEST_SECTIONS } from "@/lib/data/questions";
-
-const STORAGE_KEY = "emotionlab_test_answers";
+import { clearLegacyTestFlowStorage, getUserTestFlowStorageKey } from "@/lib/test-flow-storage";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 type AnswersState = Record<string, AnswerValue>;
 
@@ -27,26 +27,63 @@ function isAnswered(value: AnswerValue | undefined): boolean {
 
 export default function TestPage() {
   const router = useRouter();
-  const [answers, setAnswers] = useState<AnswersState>(() => {
-    if (typeof window === "undefined") {
-      return {};
-    }
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    try {
-      return JSON.parse(raw) as AnswersState;
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-      return {};
-    }
-  });
+  const [userId, setUserId] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<AnswersState>({});
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
-  }, [answers]);
+    let active = true;
+
+    const loadUserAnswers = async () => {
+      try {
+        clearLegacyTestFlowStorage();
+        const supabase = getSupabaseClient();
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error || !user) {
+          router.replace("/login");
+          return;
+        }
+
+        const storageKey = getUserTestFlowStorageKey(user.id, "answers");
+        const raw = localStorage.getItem(storageKey);
+        let nextAnswers: AnswersState = {};
+
+        if (raw) {
+          try {
+            nextAnswers = JSON.parse(raw) as AnswersState;
+          } catch {
+            localStorage.removeItem(storageKey);
+          }
+        }
+
+        if (active) {
+          setUserId(user.id);
+          setAnswers(nextAnswers);
+        }
+      } catch {
+        if (active) router.replace("/login");
+      }
+    };
+
+    void loadUserAnswers();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    const storageKey = getUserTestFlowStorageKey(userId, "answers");
+    localStorage.setItem(storageKey, JSON.stringify(answers));
+  }, [answers, userId]);
 
   const totalQuestions = useMemo(
     () => TEST_SECTIONS.reduce((sum, section) => sum + section.questions.length, 0),
@@ -81,7 +118,9 @@ export default function TestPage() {
       return;
     }
     if (currentSectionIndex === TEST_SECTIONS.length - 1) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
+      if (userId) {
+        localStorage.setItem(getUserTestFlowStorageKey(userId, "answers"), JSON.stringify(answers));
+      }
       router.push("/test/hobbies");
       return;
     }
