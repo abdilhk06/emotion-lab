@@ -146,7 +146,7 @@ export default function DashboardPage() {
     }
 
     const data = state.data;
-    const profileTileSub = data.mbtiName ?? DEFAULT_DATA.mbtiName;
+    const profileTileSub = data.mbtiName ?? "Le Protagoniste";
 
     return (
       <div className="dashboard-stack">
