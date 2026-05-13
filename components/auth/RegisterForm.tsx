@@ -12,6 +12,8 @@ export function RegisterForm() {
   const [studyLevel, setStudyLevel] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -60,8 +62,72 @@ export function RegisterForm() {
         <div className="input-group"><label htmlFor="register-email">Email</label><input id="register-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
         <div className="input-group"><label htmlFor="register-pseudo">Pseudo</label><input id="register-pseudo" type="text" required value={pseudo} onChange={(e) => setPseudo(e.target.value)} /></div>
         <div className="input-group"><label htmlFor="register-study-level">Niveau d&apos;etude</label><input id="register-study-level" type="text" required value={studyLevel} onChange={(e) => setStudyLevel(e.target.value)} /></div>
-        <div className="input-group"><label htmlFor="register-password">Mot de passe</label><input id="register-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-        <div className="input-group"><label htmlFor="register-confirm-password">Confirmer le mot de passe</label><input id="register-confirm-password" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></div>
+        <div className="input-group">
+          <label htmlFor="register-password">Mot de passe</label>
+          <div style={{ position: "relative" }}>
+            <input
+              id="register-password"
+              type={showPassword ? "text" : "password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ paddingRight: "104px" }}
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              onClick={() => setShowPassword((prev) => !prev)}
+              style={{
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                border: "none",
+                background: "transparent",
+                color: "var(--bleu-ciel)",
+                fontSize: "13px",
+                fontWeight: 500,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              {showPassword ? "Masquer" : "Afficher"}
+            </button>
+          </div>
+        </div>
+        <div className="input-group">
+          <label htmlFor="register-confirm-password">Confirmer le mot de passe</label>
+          <div style={{ position: "relative" }}>
+            <input
+              id="register-confirm-password"
+              type={showConfirmPassword ? "text" : "password"}
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              style={{ paddingRight: "104px" }}
+            />
+            <button
+              type="button"
+              aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              style={{
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                border: "none",
+                background: "transparent",
+                color: "var(--bleu-ciel)",
+                fontSize: "13px",
+                fontWeight: 500,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              {showConfirmPassword ? "Masquer" : "Afficher"}
+            </button>
+          </div>
+        </div>
         <label className="checkbox-row" style={{ marginBottom: 14 }}><input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} /><span>J&apos;accepte de recevoir des communications utiles (optionnel).</span></label>
         {error ? <p style={{ color: "#b42318", fontSize: 14, marginBottom: 12 }}>{error}</p> : null}
         <button className="btn btn-primary btn-full btn-lg" type="submit" disabled={submitting}>{submitting ? "Creation du compte..." : "Creer mon compte"}</button>

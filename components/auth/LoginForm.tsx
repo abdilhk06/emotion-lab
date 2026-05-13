@@ -10,6 +10,7 @@ export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,14 +68,37 @@ export function LoginForm() {
 
         <div className="input-group">
           <label htmlFor="login-pwd">Mot de passe</label>
-          <input
-            id="login-pwd"
-            placeholder="Ton mot de passe"
-            required
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              id="login-pwd"
+              placeholder="Ton mot de passe"
+              required
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              style={{ paddingRight: "104px" }}
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              onClick={() => setShowPassword((prev) => !prev)}
+              style={{
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                border: "none",
+                background: "transparent",
+                color: "var(--bleu-ciel)",
+                fontSize: "13px",
+                fontWeight: 500,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              {showPassword ? "Masquer" : "Afficher"}
+            </button>
+          </div>
         </div>
 
         <div
