@@ -33,8 +33,15 @@ export function LogoutButton() {
 
   return (
     <div className="logout-block">
-      <button className="btn btn-tertiary" type="button" onClick={onLogout} disabled={loading}>
-        {loading ? "Deconnexion..." : "Me deconnecter"}
+      <button className="sidebar-link logout-link" type="button" onClick={onLogout} disabled={loading}>
+        <span className="sidebar-link-main">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M14 7V5H5v14h9v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M11 12h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="m17 9 3 3-3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>{loading ? "Deconnexion..." : "Me deconnecter"}</span>
+        </span>
       </button>
       {error ? <p className="dashboard-error">{error}</p> : null}
     </div>

@@ -2,33 +2,34 @@ type DashboardGreetingProps = {
   pseudo: string;
   mbtiCode: string | null;
   mbtiName: string | null;
+  school: string;
 };
 
-export function DashboardGreeting({ pseudo, mbtiCode, mbtiName }: DashboardGreetingProps) {
+export function DashboardGreeting({ pseudo, mbtiCode, mbtiName, school }: DashboardGreetingProps) {
   return (
-    <header className="dashboard-greeting-card">
+    <header className="dashboard-greeting">
       <p className="dashboard-greeting-label">Bonjour,</p>
       <h2>{pseudo}</h2>
       <div className="dashboard-greeting-line">
         <span className="dashboard-greeting-badge">{mbtiCode ? `${mbtiCode} · ${mbtiName ?? "Profil detecte"}` : "Profil MBTI a completer"}</span>
+        <span className="dashboard-greeting-dot">·</span>
+        <span className="dashboard-school">{school}</span>
       </div>
       <style jsx>{`
-        .dashboard-greeting-card {
-          background: linear-gradient(132deg, #7e3d5e, #8a6889 50%, #5f6f8d 80%, #2e8bbf);
-          color: #fff;
-          border-radius: 20px;
-          padding: 22px;
-          box-shadow: 0 18px 36px rgba(41, 40, 65, 0.2);
+        .dashboard-greeting {
+          color: var(--texte);
         }
 
         .dashboard-greeting-label {
           margin: 0;
-          opacity: 0.9;
+          color: #6b7890;
+          font-size: 13px;
         }
 
         h2 {
-          margin: 6px 0 12px;
-          font-size: clamp(30px, 4vw, 42px);
+          margin: 2px 0 8px;
+          font-size: clamp(28px, 4vw, 30px);
+          letter-spacing: 0;
         }
 
         .dashboard-greeting-line {
@@ -41,11 +42,18 @@ export function DashboardGreeting({ pseudo, mbtiCode, mbtiName }: DashboardGreet
         .dashboard-greeting-badge {
           display: inline-flex;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.18);
-          border: 1px solid rgba(255, 255, 255, 0.38);
-          padding: 6px 12px;
-          font-size: 13px;
+          background: #f7bac1;
+          color: var(--plum);
+          padding: 5px 10px;
+          font-size: 12px;
           font-weight: 600;
+        }
+
+        .dashboard-greeting-dot,
+        .dashboard-school {
+          color: #263752;
+          font-size: 13px;
+          font-weight: 500;
         }
       `}</style>
     </header>

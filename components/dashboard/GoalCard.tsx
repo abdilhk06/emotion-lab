@@ -30,8 +30,10 @@ export function GoalCard({ title, periodLabel, objective, progress }: GoalCardPr
         .goal-card {
           background: #fff;
           border: 1px solid var(--bordure);
-          border-radius: 16px;
-          padding: 18px;
+          border-radius: 15px;
+          padding: 22px;
+          min-height: 154px;
+          box-shadow: 0 10px 25px rgba(35, 28, 51, 0.06);
         }
 
         .header {
@@ -43,24 +45,25 @@ export function GoalCard({ title, periodLabel, objective, progress }: GoalCardPr
 
         h3 {
           margin: 0;
+          font-size: 20px;
         }
 
         .tag {
-          background: #f1e9f7;
+          background: #f5ecf4;
           color: var(--plum);
           border-radius: 999px;
-          padding: 4px 10px;
+          padding: 6px 12px;
           font-size: 12px;
-          font-weight: 600;
         }
 
         .objective {
-          margin: 12px 0;
-          color: var(--texte-gris);
+          margin: 20px 0 12px;
+          color: var(--texte);
+          font-size: 14px;
         }
 
         .track {
-          height: 10px;
+          height: 7px;
           border-radius: 999px;
           background: #ede7f2;
           overflow: hidden;
@@ -78,7 +81,7 @@ export function GoalCard({ title, periodLabel, objective, progress }: GoalCardPr
           display: flex;
           justify-content: space-between;
           color: var(--texte-clair);
-          font-size: 13px;
+          font-size: 12px;
         }
       `}</style>
     </article>

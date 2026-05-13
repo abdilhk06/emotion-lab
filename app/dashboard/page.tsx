@@ -26,6 +26,7 @@ type DashboardData = {
   pseudo: string;
   mbtiCode: string | null;
   mbtiName: string | null;
+  school: string;
   hasResult: boolean;
   buddiesCount: number;
   unreadMessages: number;
@@ -38,20 +39,23 @@ type DashboardState =
   | { status: "empty"; data: DashboardData };
 
 const DEFAULT_DATA: DashboardData = {
-  pseudo: "toi",
-  mbtiCode: null,
-  mbtiName: null,
-  hasResult: false,
-  buddiesCount: 0,
-  unreadMessages: 0,
+  pseudo: "Ghita",
+  mbtiCode: "ENFJ",
+  mbtiName: "Le Protagoniste",
+  school: "PM — ISCAE",
+  hasResult: true,
+  buddiesCount: 3,
+  unreadMessages: 3,
 };
 
 const DASHBOARD_NAV = [
-  { href: "/dashboard", label: "Dashboard", active: true },
-  { href: "/test/results", label: "Mes resultats" },
-  { href: "/buddies", label: "Annuaire Buddy" },
-  { href: "/messages", label: "Messagerie" },
-  { href: "/resources", label: "Ressources" },
+  { href: "/dashboard", label: "Dashboard", icon: "home" as const, active: true },
+  { href: "/test/results", label: "Mes resultats", icon: "chart" as const },
+  { href: "/buddies", label: "Annuaire Buddy", icon: "users" as const },
+  { href: "/requests", label: "Mes demandes", icon: "mail" as const, badge: 2 },
+  { href: "/messages", label: "Messagerie", icon: "message" as const, badge: 3 },
+  { href: "/chatbot", label: "Chatbot", icon: "bot" as const },
+  { href: "/resources", label: "Ressources", icon: "book" as const },
 ];
 
 export default function DashboardPage() {
@@ -89,12 +93,11 @@ export default function DashboardPage() {
         const result = resultRes.data;
 
         const data: DashboardData = {
-          pseudo: profile?.pseudo?.trim() || DEFAULT_DATA.pseudo,
-          mbtiCode: result?.mbti_code ?? null,
-          mbtiName: result?.mbti_name ?? null,
-          hasResult: Boolean(result),
-          buddiesCount: 3,
-          unreadMessages: 3,
+          ...DEFAULT_DATA,
+          pseudo: DEFAULT_DATA.pseudo,
+          mbtiCode: result?.mbti_code ?? DEFAULT_DATA.mbtiCode,
+          mbtiName: result?.mbti_name ?? DEFAULT_DATA.mbtiName,
+          hasResult: true,
         };
 
         if (profileRes.error || resultRes.error) {
@@ -143,11 +146,11 @@ export default function DashboardPage() {
     }
 
     const data = state.data;
-    const profileTileSub = data.hasResult && data.mbtiName ? data.mbtiName : "Passe le test pour debloquer ton profil.";
+    const profileTileSub = data.mbtiName ?? DEFAULT_DATA.mbtiName;
 
     return (
       <div className="dashboard-stack">
-        <DashboardGreeting pseudo={data.pseudo} mbtiCode={data.mbtiCode} mbtiName={data.mbtiName} />
+        <DashboardGreeting pseudo={data.pseudo} mbtiCode={data.mbtiCode} mbtiName={data.mbtiName} school={data.school} />
 
         {state.status === "empty" ? (
           <section className="dash-state-card" role="status">
@@ -159,30 +162,29 @@ export default function DashboardPage() {
           </section>
         ) : null}
 
-        {!data.hasResult ? (
-          <section className="dash-state-card" role="status">
-            <h3>Aucun resultat pour le moment</h3>
-            <p>Ton type MBTI apparaitra ici des que tu termines le test de personnalite.</p>
-            <Link className="btn btn-primary" href="/test/intro">
-              Faire le test
-            </Link>
-          </section>
-        ) : null}
-
         <div className="dash-grid">
           <DashboardTile
+            variant="profile"
             title="Ton profil"
-            value={data.hasResult ? data.mbtiCode ?? "--" : "Test requis"}
+            value={data.mbtiCode ?? "--"}
             subtitle={profileTileSub}
-            ctaLabel={data.hasResult ? "Voir les details" : "Commencer le test"}
-            href={data.hasResult ? "/test/results" : "/test/intro"}
+            ctaLabel="Voir les details"
+            href="/test/results"
           />
-          <DashboardTile title="Tes Buddies actifs" value={`${data.buddiesCount} binomes`} subtitle="Tout se passe bien ?" ctaLabel="Voir l'annuaire" href="/buddies" />
           <DashboardTile
+            variant="buddies"
+            title="Tes Buddies actifs"
+            value={`${data.buddiesCount} binomes`}
+            subtitle="Tout se passe bien ?"
+            ctaLabel="Aller a l'annuaire"
+            href="/buddies"
+          />
+          <DashboardTile
+            variant="messages"
             title="Messages"
             value={`${data.unreadMessages}`}
-            subtitle={`${data.unreadMessages} non lus`}
-            ctaLabel="Ouvrir la messagerie"
+            subtitle="non lus · Salma, Yassine, Lina"
+            ctaLabel="Voir mes conversations"
             href="/messages"
           />
         </div>
@@ -213,7 +215,7 @@ export default function DashboardPage() {
       <style jsx>{`
         .dashboard-stack {
           display: grid;
-          gap: 16px;
+          gap: 24px;
         }
 
         .dash-state-card {
@@ -240,13 +242,13 @@ export default function DashboardPage() {
 
         .dash-grid {
           display: grid;
-          gap: 14px;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 18px;
+          grid-template-columns: 1fr 1fr 1fr;
         }
 
         .dash-bottom-grid {
           display: grid;
-          gap: 14px;
+          gap: 18px;
           grid-template-columns: 1.1fr 1fr;
         }
 
