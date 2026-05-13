@@ -4,9 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/app-layout/AppLayout";
-import { BigFiveRadar } from "@/components/results/BigFiveRadar";
 import { GaugeCard } from "@/components/results/GaugeCard";
-import { MBTIAxes, type MBTIAxisItem } from "@/components/results/MBTIAxes";
 import { ResultsHero } from "@/components/results/ResultsHero";
 import type { BigFiveScores } from "@/lib/calculate-result";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -27,76 +25,50 @@ type ResultsState =
   | { status: "ready"; result: StoredResult };
 
 const RESULTS_NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/results", label: "Mes resultats", active: true },
-  { href: "/buddies", label: "Annuaire Buddy" },
-  { href: "/messages", label: "Messagerie" },
-  { href: "/resources", label: "Ressources" },
+  { href: "/dashboard", label: "Dashboard", icon: "home" as const },
+  { href: "/results", label: "Mes résultats", active: true, icon: "chart" as const },
+  { href: "/buddies", label: "Annuaire Buddy", icon: "users" as const },
+  { href: "/requests", label: "Mes demandes", badge: 2, icon: "mail" as const },
+  { href: "/messages", label: "Messagerie", badge: 3, icon: "message" as const },
+  { href: "/chatbot", label: "Chatbot", icon: "bot" as const },
+  { href: "/resources", label: "Ressources", icon: "book" as const },
 ];
 
-const MBTI_EXPLANATIONS: Record<string, string> = {
-  ENFJ: "Tu federes naturellement et aides les autres a avancer avec confiance.",
-  INFJ: "Tu combines intuition et profondeur pour donner du sens a tes choix.",
-  ENFP: "Tu insuffles energie et creativite, surtout dans les contextes collectifs.",
-  INFP: "Tu avances avec authenticite, sensibilite et recherche d'alignement personnel.",
-  ENTJ: "Tu structures efficacement, prends des decisions nettes et motives ton entourage.",
-  INTJ: "Tu relies vision long terme et rigueur pour faire progresser tes projets.",
-};
-
-const BIG_FIVE_LABELS: Array<{ key: keyof BigFiveScores; label: string; help: string }> = [
-  { key: "agreeableness", label: "Agreabilite", help: "Qualite relationnelle et empathie" },
-  { key: "extraversion", label: "Extraversion", help: "Energie sociale et expression" },
-  { key: "openness", label: "Ouverture", help: "Curiosite et nouvelles idees" },
-  { key: "conscientiousness", label: "Consciencieusite", help: "Organisation et constance" },
-  { key: "neuroticism", label: "Stabilite emotionnelle", help: "Gestion de la pression" },
+const BIG_FIVE_CARDS: Array<{ key: keyof BigFiveScores; label: string }> = [
+  { key: "agreeableness", label: "Agréabilité" },
+  { key: "extraversion", label: "Extraversion" },
+  { key: "openness", label: "Ouverture" },
+  { key: "conscientiousness", label: "Consciencieusité" },
 ];
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function mbtiAxesFromScores(code: string, scores: BigFiveScores): MBTIAxisItem[] {
-  const letters = code.padEnd(4, "X").slice(0, 4).split("");
-  const axes: MBTIAxisItem[] = [
-    {
-      leftLabel: "E - Extraversion",
-      rightLabel: "Introversion - I",
-      activeSide: letters[0] === "E" ? "left" : "right",
-      value: letters[0] === "E" ? scores.extraversion : 100 - scores.extraversion,
-    },
-    {
-      leftLabel: "Sensation - S",
-      rightLabel: "Intuition - N",
-      activeSide: letters[1] === "S" ? "left" : "right",
-      value: letters[1] === "S" ? 100 - scores.openness : scores.openness,
-    },
-    {
-      leftLabel: "Logique - T",
-      rightLabel: "Affect - F",
-      activeSide: letters[2] === "T" ? "left" : "right",
-      value: letters[2] === "T" ? 100 - scores.agreeableness : scores.agreeableness,
-    },
-    {
-      leftLabel: "J - Structure",
-      rightLabel: "Flexibilite - P",
-      activeSide: letters[3] === "J" ? "left" : "right",
-      value: letters[3] === "J" ? scores.conscientiousness : 100 - scores.conscientiousness,
-    },
-  ];
+function formatDateLabel(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Date indisponible";
+  const formatted = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(parsed);
+  return `Passé le ${formatted}`;
+}
 
-  return axes.map((axis) => ({ ...axis, value: clamp(axis.value) }));
+function bigFiveDescription(key: keyof BigFiveScores, score: number): string {
+  if (key === "agreeableness") return score >= 70 ? "Super-pouvoir relationnel. Les autres se confient à toi." : "Tu combines écoute et franchise dans tes relations.";
+  if (key === "extraversion") return score >= 70 ? "Tu te nourris des interactions." : "Tu alternes bien entre temps social et temps calme.";
+  if (key === "openness") return score >= 70 ? "Tu aimes les nouvelles idées." : "Tu restes pragmatique tout en gardant de la curiosité.";
+  return score >= 70 ? "Tu tiens un cadre clair et fiable." : "Bon équilibre méthode / souplesse.";
 }
 
 function statusForStress(value: number) {
-  if (value < 35) return { label: "Faible", tone: "low" as const, description: "Tu sembles globalement bien gerer la pression actuelle." };
-  if (value < 70) return { label: "Modere", tone: "moderate" as const, description: "Ton niveau de tension reste gerable, avec des pics ponctuels possibles." };
-  return { label: "Eleve", tone: "high" as const, description: "Une phase intense est probable: avance par petites etapes et active tes soutiens." };
+  if (value < 35) return { label: "Faible", chipLabel: "Faible", tone: "low" as const, description: "Tu sembles globalement bien gérer la pression actuelle." };
+  if (value < 70) return { label: "Modéré", chipLabel: "Modéré — élevé", tone: "moderate" as const, description: "Ton niveau de tension reste gérable, avec des pics ponctuels possibles." };
+  return { label: "Élevé", chipLabel: "Élevé", tone: "high" as const, description: "Une phase intense est probable: avance par petites étapes et active tes soutiens." };
 }
 
 function statusForBalance(value: number) {
-  if (value < 40) return { label: "Spontane", tone: "moderate" as const, description: "Tu privilegies la flexibilite, utile pour t'adapter vite aux changements." };
-  if (value < 75) return { label: "Equilibre", tone: "balanced" as const, description: "Ton organisation melange structure et souplesse de maniere saine." };
-  return { label: "Organise", tone: "balanced" as const, description: "Tu fonctionnes bien avec un cadre clair et des routines stabilisantes." };
+  if (value < 40) return { label: "Spontané", chipLabel: "Spontanée", tone: "moderate" as const, description: "Tu privilégies la flexibilité, utile pour t'adapter vite aux changements." };
+  if (value < 75) return { label: "Équilibré", chipLabel: "Équilibrée", tone: "balanced" as const, description: "Ton organisation mélange structure et souplesse de manière saine." };
+  return { label: "Organisé", chipLabel: "Organisée", tone: "balanced" as const, description: "Tu fonctionnes bien avec un cadre clair et des routines stabilisantes." };
 }
 
 export default function ResultsPage() {
@@ -139,16 +111,12 @@ export default function ResultsPage() {
 
         setState({
           status: "ready",
-          result: {
-            ...data,
-            stress_score: clamp(data.stress_score),
-            balance_score: clamp(data.balance_score),
-          },
+          result: { ...data, stress_score: clamp(data.stress_score), balance_score: clamp(data.balance_score) },
         });
       } catch (error) {
         setState({
           status: "error",
-          message: error instanceof Error ? error.message : "Impossible de charger tes resultats pour le moment.",
+          message: error instanceof Error ? error.message : "Impossible de charger tes résultats pour le moment.",
         });
       }
     };
@@ -160,8 +128,8 @@ export default function ResultsPage() {
     if (state.status === "loading") {
       return (
         <section className="results-state-card" role="status" aria-live="polite">
-          <h2>Chargement de tes resultats...</h2>
-          <p>On recupere ton dernier profil enregistre.</p>
+          <h2>Chargement de tes résultats...</h2>
+          <p>On récupère ton dernier profil enregistré.</p>
         </section>
       );
     }
@@ -169,7 +137,7 @@ export default function ResultsPage() {
     if (state.status === "error") {
       return (
         <section className="results-state-card results-state-error" role="alert">
-          <h2>Impossible d&apos;afficher tes resultats</h2>
+          <h2>Impossible d&apos;afficher tes résultats</h2>
           <p>{state.message}</p>
           <div className="results-actions">
             <Link className="btn btn-tertiary" href="/dashboard">
@@ -186,11 +154,11 @@ export default function ResultsPage() {
     if (state.status === "empty") {
       return (
         <section className="results-state-card" role="status">
-          <h2>Aucun resultat enregistre</h2>
-          <p>Tu n&apos;as pas encore de resultat sauvegarde. Lance le test pour generer ton profil Emotion Lab.</p>
+          <h2>Aucun résultat enregistré</h2>
+          <p>Tu n&apos;as pas encore de résultat sauvegardé. Lance le test pour générer ton profil Emotion Lab.</p>
           <div className="results-actions">
             <Link className="btn btn-primary" href="/test/intro">
-              Demarrer le test
+              Démarrer le test
             </Link>
             <Link className="btn btn-tertiary" href="/dashboard">
               Retour au dashboard
@@ -201,81 +169,72 @@ export default function ResultsPage() {
     }
 
     const { result } = state;
-    const axes = mbtiAxesFromScores(result.mbti_code, result.big_five_scores);
     const stress = statusForStress(result.stress_score);
     const balance = statusForBalance(result.balance_score);
-    const mbtiExplanation =
-      MBTI_EXPLANATIONS[result.mbti_code] ??
-      "Ton profil montre un bon potentiel d'equilibre emotionnel et de progression relationnelle.";
 
     return (
       <div className="results-stack">
-        <ResultsHero
-          mbtiCode={result.mbti_code}
-          mbtiName={result.mbti_name}
-          explanation={mbtiExplanation}
-          eyebrow="Resultat le plus recent"
-          ctaLabel="Profil partageable"
-        />
-
-        <section className="results-section">
-          <div className="results-section-title">Vue d&apos;ensemble Big Five</div>
-          <p className="results-section-description">Ces indicateurs de 0 a 100 montrent tes tendances dominantes sur les 5 dimensions de personnalite.</p>
-          <div className="overview-grid">
-            {BIG_FIVE_LABELS.map((item) => (
-              <article className="overview-card" key={item.key}>
-                <h3>{item.label}</h3>
-                <p className="overview-score">{result.big_five_scores[item.key]}<span>/100</span></p>
-                <p className="overview-help">{item.help}</p>
-              </article>
-            ))}
+        <header className="results-header">
+          <h1>Mes résultats</h1>
+          <div className="results-tabs" role="tablist" aria-label="Historique des résultats">
+            <button className="results-tab active" type="button" role="tab" aria-selected="true">
+              Actuel
+            </button>
+            <button className="results-tab" type="button" role="tab" aria-selected="false">
+              Historique (1)
+            </button>
           </div>
+        </header>
+
+        <ResultsHero mbtiCode={result.mbti_code || "ENFJ"} mbtiName={result.mbti_name || "Le Protagoniste"} dateLabel={formatDateLabel(result.created_at)} ctaLabel="PDF" compact />
+
+        <section className="results-grid" aria-label="Scores principaux">
+          {BIG_FIVE_CARDS.map((item) => {
+            const score = clamp(result.big_five_scores[item.key]);
+            return (
+              <article className="score-card" key={item.key}>
+                <h2>{item.label}</h2>
+                <p className="score-value">
+                  {score}
+                  <span>/100</span>
+                </p>
+                <p className="score-description">{bigFiveDescription(item.key, score)}</p>
+              </article>
+            );
+          })}
         </section>
 
-        <MBTIAxes
-          axes={axes}
-          title="Axes MBTI"
-          description="Tu vois ici comment tes preferences se repartissent sur chaque paire MBTI."
-        />
-
-        <BigFiveRadar
-          scores={result.big_five_scores}
-          title="Lecture detaillee Big Five"
-          description="Le radar visualise ton profil global et les forces qui ressortent le plus actuellement."
-        />
-
-        <section className="results-section">
-          <div className="results-section-title">Stress et equilibre</div>
-          <p className="results-section-description">Deux jauges pour suivre ta charge mentale et ton style d&apos;organisation sur la duree.</p>
-          <div className="gauges-grid">
-            <GaugeCard
-              label="Niveau de stress"
-              value={result.stress_score}
-              status={stress.label}
-              description={stress.description}
-              tone={stress.tone}
-              scale={["Faible", "Modere", "Eleve"]}
-            />
-            <GaugeCard
-              label="Score d'equilibre"
-              value={result.balance_score}
-              status={balance.label}
-              description={balance.description}
-              tone={balance.tone}
-              scale={["Spontane", "Equilibre", "Organise"]}
-            />
-          </div>
+        <section className="results-grid results-grid-lower" aria-label="Stress et organisation">
+          <GaugeCard
+            label="Ton niveau de stress"
+            value={result.stress_score}
+            status={stress.label}
+            chipLabel={stress.chipLabel}
+            description={stress.description}
+            tone={stress.tone}
+            scale={["Faible", "Modéré", "Élevé"]}
+            compact
+            hideTrack
+          />
+          <GaugeCard
+            label="Style d'organisation"
+            value={result.balance_score}
+            status={balance.label}
+            chipLabel={balance.chipLabel}
+            description={balance.description}
+            tone={balance.tone}
+            scale={["Spontané", "Équilibré", "Organisé"]}
+            compact
+            hideTrack
+          />
         </section>
 
         <div className="results-actions">
-          <Link className="btn btn-primary" href="/test/intro">
+          <button className="btn btn-primary" type="button">
+            Télécharger en PDF
+          </button>
+          <Link className="btn btn-outline" href="/test/intro">
             Repasser le test
-          </Link>
-          <Link className="btn btn-tertiary" href="/buddies">
-            Voir mes buddies
-          </Link>
-          <Link className="btn btn-tertiary" href="/dashboard">
-            Retour au dashboard
           </Link>
         </div>
       </div>
@@ -283,388 +242,239 @@ export default function ResultsPage() {
   }, [state]);
 
   return (
-    <AppLayout title="Mes resultats" nav={RESULTS_NAV}>
+    <AppLayout title="Mes résultats" nav={RESULTS_NAV}>
       {content}
       <style jsx>{`
         .results-stack {
           display: grid;
-          gap: 16px;
+          gap: 18px;
         }
-
-        .results-state-card,
-        .results-section {
+        .results-header h1 {
+          margin: 0;
+          font-size: clamp(2rem, 4.2vw, 3.3rem);
+          line-height: 1.08;
+          color: #0f1d4a;
+          font-weight: 800;
+        }
+        .results-tabs {
+          margin-top: 16px;
+          display: inline-flex;
+          gap: 6px;
+          padding: 4px;
+          border-radius: 14px;
+          background: #edeaf1;
+        }
+        .results-tab {
+          border: 0;
+          background: transparent;
+          color: #344165;
+          border-radius: 10px;
+          padding: 9px 16px;
+          font-weight: 600;
+          font-size: 1rem;
+        }
+        .results-tab.active {
+          background: #ffffff;
+          color: #7e3d5e;
+          box-shadow: 0 1px 4px rgba(14, 21, 46, 0.08);
+        }
+        .results-state-card {
           background: #fff;
-          border: 1px solid var(--bordure);
-          border-radius: 16px;
-          padding: 18px;
+          border: 1px solid #dcd3e5;
+          border-radius: 18px;
+          padding: 20px;
+          box-shadow: 0 8px 18px rgba(26, 20, 40, 0.06);
         }
-
         .results-state-error {
           border-color: #f3c7ce;
           background: #fff8f9;
         }
-
-        .results-state-card h2,
-        .results-section-title {
+        .results-state-card h2 {
           margin: 0 0 8px;
         }
-
-        .results-state-card p,
-        :global(.results-section-description) {
+        .results-state-card p {
           margin: 0 0 14px;
-          color: var(--texte-gris);
+          color: #5c6482;
         }
-
-        .overview-grid {
-          display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 12px;
+        :global(.results-hero) {
+          background: linear-gradient(132deg, #7e3d5e, #8a6889 54%, #4b95c8);
+          color: #fff;
+          border-radius: 22px;
+          padding: 24px;
+          box-shadow: 0 16px 36px rgba(48, 36, 55, 0.2);
         }
-
-        .overview-card {
-          border: 1px solid var(--bordure);
-          border-radius: 14px;
-          padding: 12px;
-          background: #fbf9fd;
+        :global(.results-hero-head) {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
         }
-
-        .overview-card h3 {
-          margin: 0 0 8px;
-          font-size: 14px;
-        }
-
-        .overview-score {
+        :global(.results-code) {
           margin: 0;
-          font-family: "Poppins", sans-serif;
-          font-size: 30px;
+          font-size: clamp(3rem, 6vw, 4.5rem);
+          line-height: 0.96;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+        }
+        :global(.results-name) {
+          margin-top: 6px;
+          font-size: clamp(1.8rem, 3vw, 2.2rem);
+          line-height: 1.1;
           font-weight: 700;
-          color: var(--plum);
+        }
+        :global(.results-date) {
+          margin: 8px 0 0;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 1rem;
+          font-weight: 500;
+        }
+        :global(.results-share) {
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          background: rgba(255, 255, 255, 0.18);
+          color: #fff;
+          padding: 10px 20px;
+          min-width: 74px;
+          min-height: 44px;
+          font-weight: 700;
+        }
+        .results-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
+        }
+        .score-card {
+          background: #ffffff;
+          border: 1px solid #d8d3e2;
+          border-radius: 18px;
+          padding: 20px 22px;
+          box-shadow: 0 8px 20px rgba(22, 24, 40, 0.05);
+          display: grid;
+          gap: 10px;
+        }
+        .score-card h2 {
+          margin: 0;
+          color: #0f1d4a;
+          font-size: clamp(1.5rem, 2.2vw, 2rem);
+          line-height: 1.12;
+        }
+        .score-value {
+          margin: 0;
+          font-size: clamp(2.2rem, 4vw, 3rem);
+          line-height: 1;
+          color: #7e3d5e;
+          font-weight: 800;
+        }
+        .score-value span {
+          margin-left: 4px;
+          font-size: 0.55em;
+          color: #5f7095;
+          font-weight: 700;
+        }
+        .score-description {
+          margin: 0;
+          color: #334366;
+          font-size: 1.08rem;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
+        }
+        .results-grid-lower :global(.gauge-card) {
+          padding: 20px 22px;
+        }
+        :global(.gauge-main) {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-top: 8px;
+          flex-wrap: wrap;
+        }
+        :global(.gauge-card .gauge-label) {
+          margin: 0;
+          color: #09173e;
+          font-size: clamp(1.45rem, 2.3vw, 2rem);
+          line-height: 1.15;
+          font-weight: 700;
+        }
+        :global(.gauge-card .gauge-value) {
+          margin-top: 0;
+          font-size: clamp(2.2rem, 3.6vw, 3rem);
+          font-weight: 800;
           line-height: 1;
         }
-
-        .overview-score span {
-          font-size: 14px;
-          color: var(--texte-clair);
+        :global(.gauge-card .gauge-value span) {
           margin-left: 4px;
+          font-size: 0.55em;
+          color: #5f7095;
+          font-weight: 700;
         }
-
-        .overview-help {
-          margin: 8px 0 0;
-          font-size: 12px;
-          color: var(--texte-gris);
-        }
-
-        :global(.results-hero) {
-          background: linear-gradient(132deg, #7e3d5e, #8a6889 52%, #62809a);
-          color: #fff;
-          border-radius: 18px;
-          padding: 24px;
-          box-shadow: 0 16px 40px rgba(48, 36, 55, 0.16);
-        }
-
-        :global(.eyebrow) {
-          display: inline-flex;
-          font-size: 12px;
-          letter-spacing: 0.04em;
-          font-weight: 600;
+        :global(.gauge-chip) {
+          font-size: 0.95rem;
           padding: 6px 12px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.16);
-        }
-
-        :global(.results-code) {
-          margin-top: 12px;
-          font-family: "Poppins", sans-serif;
-          font-weight: 800;
-          font-size: clamp(42px, 6vw, 58px);
+          font-weight: 600;
           line-height: 1;
         }
-
-        :global(.results-name) {
-          margin-top: 8px;
-          font-family: "Poppins", sans-serif;
-          font-size: clamp(24px, 4vw, 32px);
-          font-weight: 700;
+        :global(.gauge-chip.faible) {
+          color: #12915f;
+          background: #e2f4ec;
         }
-
-        :global(.results-tagline) {
-          margin: 10px 0 0;
-          max-width: 680px;
-          color: rgba(255, 255, 255, 0.92);
+        :global(.gauge-chip.modere) {
+          color: #d87524;
+          background: #fff1e5;
         }
-
-        :global(.results-share) {
-          margin-top: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.35);
-          background: rgba(255, 255, 255, 0.14);
-          color: #fff;
-          border-radius: 10px;
-          padding: 10px 14px;
-          font-weight: 600;
+        :global(.gauge-chip.eleve) {
+          color: #ca5120;
+          background: #ffeae3;
         }
-
-        :global(.axes-grid),
-        :global(.gauges-grid) {
-          display: grid;
-          gap: 12px;
+        :global(.gauge-chip.equilibre) {
+          color: #2ea36a;
+          background: #e2f4ea;
         }
-
-        :global(.axe-row) {
-          display: grid;
-          gap: 8px;
-        }
-
-        :global(.axe-header) {
-          display: flex;
-          justify-content: space-between;
-          gap: 10px;
-          font-size: 13px;
-          color: var(--texte-clair);
-        }
-
-        :global(.axe-letter.active) {
-          color: var(--plum);
-          font-weight: 700;
-        }
-
-        :global(.axe-track) {
-          height: 12px;
-          border-radius: 999px;
-          background: #ece7f1;
-          overflow: hidden;
-        }
-
-        :global(.axe-fill) {
-          height: 100%;
-          background: linear-gradient(90deg, #7e3d5e, #2e8bbf);
-          border-radius: 999px;
-          position: relative;
-        }
-
-        :global(.axe-dot) {
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          border: 2px solid #fff;
-          background: #7e3d5e;
-          position: absolute;
-          right: -7px;
-          top: -1px;
-        }
-
-        :global(.big-five-grid) {
-          display: grid;
-          gap: 14px;
-        }
-
-        :global(.radar-card) {
-          border: 1px solid var(--bordure);
-          border-radius: 16px;
-          padding: 10px;
-          background: #f9f6fb;
-        }
-
-        :global(.radar-svg) {
-          width: 100%;
-          max-width: 340px;
-          margin: 0 auto;
-          display: block;
-        }
-
-        :global(.radar-grid-line) {
-          fill: none;
-          stroke: #d7cedd;
-          stroke-width: 1.4;
-        }
-
-        :global(.radar-polygon) {
-          fill: rgba(126, 61, 94, 0.2);
-          stroke: #7e3d5e;
-          stroke-width: 2;
-        }
-
-        :global(.radar-label) {
-          font-size: 12px;
-          fill: var(--texte-gris);
-        }
-
-        :global(.forces-card) {
-          border: 1px solid var(--bordure);
-          border-radius: 16px;
-          padding: 14px;
-          background: #fff;
-          display: grid;
-          gap: 10px;
-        }
-
-        :global(.forces-card h3) {
-          margin: 0;
-          font-size: 16px;
-        }
-
-        :global(.force-item) {
-          display: grid;
-          grid-template-columns: 38px 1fr;
-          gap: 10px;
-          align-items: start;
-        }
-
-        :global(.force-icon) {
-          width: 38px;
-          height: 38px;
-          border-radius: 11px;
-          background: #f4eaf1;
-          color: var(--plum);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 12px;
-        }
-
-        :global(.force-content h4) {
-          margin: 0 0 2px;
-          font-size: 14px;
-        }
-
-        :global(.force-content p) {
-          margin: 0;
-          font-size: 13px;
-          color: var(--texte-gris);
-        }
-
-        :global(.gauge-card) {
-          border: 1px solid var(--bordure);
-          border-radius: 16px;
-          background: #fff;
-          padding: 14px;
-        }
-
-        :global(.gauge-label) {
-          color: var(--texte-clair);
-          font-size: 13px;
-        }
-
-        :global(.gauge-value) {
-          margin-top: 4px;
-          font-family: "Poppins", sans-serif;
-          font-size: 32px;
-          font-weight: 800;
-          color: var(--plum);
-        }
-
-        :global(.gauge-value span) {
-          font-size: 17px;
-          color: var(--texte-clair);
-        }
-
-        :global(.gauge-status) {
-          font-size: 13px;
-          font-weight: 700;
-        }
-
-        :global(.gauge-status.faible),
-        :global(.gauge-value-faible) {
-          color: #0e9f6e;
-        }
-
-        :global(.gauge-status.modere),
-        :global(.gauge-value-modere) {
-          color: #d97706;
-        }
-
-        :global(.gauge-status.eleve),
-        :global(.gauge-value-eleve) {
-          color: #dc2626;
-        }
-
-        :global(.gauge-status.equilibre),
-        :global(.gauge-value-equilibre) {
-          color: #0284c7;
-        }
-
-        :global(.gauge-track) {
-          margin-top: 8px;
-          height: 10px;
-          border-radius: 999px;
-          background: #ece7f1;
-          overflow: hidden;
-        }
-
-        :global(.gauge-fill) {
-          height: 100%;
-        }
-
-        :global(.gauge-fill.faible) {
-          background: #0e9f6e;
-        }
-
-        :global(.gauge-fill.modere) {
-          background: #d97706;
-        }
-
-        :global(.gauge-fill.eleve) {
-          background: #dc2626;
-        }
-
-        :global(.gauge-fill.equilibre) {
-          background: #0284c7;
-        }
-
-        :global(.gauge-scale) {
-          margin-top: 8px;
-          display: flex;
-          justify-content: space-between;
-          font-size: 12px;
-          color: var(--texte-clair);
-        }
-
         :global(.gauge-card p) {
           margin: 10px 0 0;
-          color: var(--texte-gris);
-          font-size: 13px;
+          color: #334366;
+          font-size: 1.02rem;
+          line-height: 1.4;
         }
-
         .results-actions {
           display: flex;
+          gap: 12px;
           flex-wrap: wrap;
-          gap: 10px;
         }
-
-        @media (max-width: 1199px) {
-          .overview-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
+        .results-actions :global(.btn) {
+          min-height: 46px;
         }
-
-        @media (max-width: 1023px) {
-          .overview-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
+        .btn-outline {
+          background: #fff;
+          border: 1px solid #a44d76;
+          color: #7e3d5e;
         }
-
-        @media (max-width: 899px) {
-          :global(.big-five-grid),
-          :global(.gauges-grid) {
+        @media (max-width: 900px) {
+          .results-grid {
             grid-template-columns: 1fr;
           }
         }
-
-        @media (min-width: 900px) {
-          :global(.big-five-grid) {
-            grid-template-columns: 1fr 1.1fr;
-          }
-
-          :global(.gauges-grid) {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-
         @media (max-width: 640px) {
-          .overview-grid {
-            grid-template-columns: 1fr;
+          :global(.results-hero-head) {
+            align-items: flex-start;
+            flex-direction: column;
           }
-
+          :global(.results-share) {
+            align-self: flex-end;
+          }
+          .results-tabs {
+            width: 100%;
+            justify-content: stretch;
+          }
+          .results-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px 8px;
+            font-size: 0.95rem;
+          }
+          .score-card {
+            padding: 18px;
+          }
           .results-actions :global(.btn) {
             width: 100%;
           }
