@@ -237,8 +237,14 @@ export default function ResultsPage() {
         <div className="results-container">
           <ResultsHero mbtiCode={result.mbti_code} mbtiName={result.mbti_name} explanation={`« ${explanation} »`} ctaLabel="📥 Partager mon profil" />
           <div className="results-body">
-            <MBTIAxes axes={axes} />
-            <BigFiveRadar scores={result.big_five_scores} />
+            <section className="results-section">
+              <div className="results-section-title">Tes 4 dimensions</div>
+              <MBTIAxes axes={axes} title={null} />
+            </section>
+            <section className="results-section">
+              <div className="results-section-title">Tes super-pouvoirs</div>
+              <BigFiveRadar scores={result.big_five_scores} title={null} />
+            </section>
 
             <section className="results-section function-section">
               <div className="results-section-title">Comment tu fonctionnes</div>

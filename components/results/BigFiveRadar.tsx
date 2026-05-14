@@ -43,7 +43,7 @@ export function BigFiveRadar({
   description,
 }: {
   scores: BigFiveScores;
-  title?: string;
+  title?: string | null;
   description?: string;
 }) {
   const scorePoints = RADAR_LABELS.map((item) => scorePoint(item.angle, scores[item.key]));
@@ -51,7 +51,7 @@ export function BigFiveRadar({
 
   return (
     <section className="results-section">
-      <div className="results-section-title">{title}</div>
+      {title ? <div className="results-section-title">{title}</div> : null}
       {description ? <p className="results-section-description">{description}</p> : null}
       <div className="big-five-grid">
         <div className="radar-card">

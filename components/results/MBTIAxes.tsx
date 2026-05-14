@@ -11,12 +11,12 @@ export function MBTIAxes({
   description,
 }: {
   axes: MBTIAxisItem[];
-  title?: string;
+  title?: string | null;
   description?: string;
 }) {
   return (
     <section className="results-section">
-      <div className="results-section-title">{title}</div>
+      {title ? <div className="results-section-title">{title}</div> : null}
       {description ? <p className="results-section-description">{description}</p> : null}
       <div className="axes-grid">
         {axes.map((axis) => (
