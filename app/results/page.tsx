@@ -240,7 +240,7 @@ export default function ResultsPage() {
             <MBTIAxes axes={axes} />
             <BigFiveRadar scores={result.big_five_scores} />
 
-            <section className="results-section">
+            <section className="results-section function-section">
               <div className="results-section-title">Comment tu fonctionnes</div>
               <div className="gauges-grid">
                 <GaugeCard label="Niveau de stress" value={result.stress_score} status={stress.label} tone={stress.tone} scale={["Faible", "Modere", "Eleve"]} description={stress.description} />
@@ -248,7 +248,7 @@ export default function ResultsPage() {
               </div>
             </section>
 
-            <section className="results-section">
+            <section className="results-section buddies-section">
               <div className="results-section-title">Tes 3 buddies suggere.es</div>
               {buddies.length === 0 ? (
                 <div className="empty-inline">Aucun buddy visible trouve pour le moment.</div>
@@ -278,7 +278,7 @@ export default function ResultsPage() {
         .connected-results {
           margin: 0;
           padding: 0 0 52px;
-          background: #fffcfe;
+          background: #fffdfd;
           min-height: 100vh;
         }
         .results-container {
@@ -287,9 +287,9 @@ export default function ResultsPage() {
           padding-top: 0;
         }
         .results-body {
-          padding: 46px 0 0;
+          padding: 48px 0 0;
           display: grid;
-          gap: 38px;
+          gap: 40px;
         }
         :global(.results-hero) {
           min-height: 505px;
@@ -300,7 +300,7 @@ export default function ResultsPage() {
           text-align: center;
           color: #fff;
           border-radius: 18px;
-          padding: 56px 24px;
+          padding: 66px 24px 60px;
           background: linear-gradient(126deg, #90446d 0%, #8e7895 54%, #2d99c8 100%);
           box-shadow: none;
           overflow: hidden;
@@ -366,6 +366,7 @@ export default function ResultsPage() {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 16px;
+          width: 100%;
         }
         :global(.axe-row),
         :global(.radar-card),
@@ -376,11 +377,14 @@ export default function ResultsPage() {
           border: 1px solid #e4dcea;
           border-radius: 14px;
           box-shadow: none;
+          min-width: 0;
         }
         :global(.axe-row) {
-          padding: 20px;
+          min-height: 84px;
+          padding: 19px 20px;
           display: grid;
-          gap: 13px;
+          gap: 12px;
+          align-content: center;
         }
         :global(.axe-header) {
           display: flex;
@@ -418,6 +422,7 @@ export default function ResultsPage() {
           display: grid;
           grid-template-columns: 1.25fr 1fr;
           gap: 16px;
+          width: 100%;
         }
         :global(.radar-card) {
           min-height: 340px;
@@ -470,11 +475,16 @@ export default function ResultsPage() {
           line-height: 1.45;
         }
         .gauges-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          gap: 16px !important;
+          width: 100%;
+          align-items: stretch;
         }
         :global(.gauge-card) {
+          width: auto !important;
+          min-width: 0;
+          min-height: 220px;
           padding: 26px 24px;
         }
         :global(.gauge-label) {
@@ -534,18 +544,22 @@ export default function ResultsPage() {
           line-height: 1.55;
         }
         .buddies-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 16px;
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: 16px !important;
           align-items: stretch;
+          width: 100%;
         }
         :global(.buddy-card) {
           position: relative;
+          width: auto !important;
+          max-width: none !important;
           padding: 20px;
           display: grid;
           grid-template-rows: auto minmax(42px, auto) auto auto;
           gap: 16px;
           min-width: 0;
+          min-height: 256px;
         }
         :global(.buddy-compat) {
           position: absolute;
@@ -644,15 +658,21 @@ export default function ResultsPage() {
         .results-footer {
           display: flex;
           justify-content: center;
-          gap: 16px;
+          gap: 18px;
           flex-wrap: wrap;
+          padding-top: 34px;
+        }
+        .results-footer :global(.btn) {
+          min-height: 44px;
+          border-radius: 10px;
+          padding-inline: 20px;
         }
         .btn-outline {
           background: #fff;
           color: #8a315f;
           border: 1px solid #8a315f;
         }
-        @media (max-width: 1050px) {
+        @media (max-width: 780px) {
           .connected-results {
             padding-bottom: 44px;
           }
@@ -660,7 +680,7 @@ export default function ResultsPage() {
           :global(.big-five-grid),
           .gauges-grid,
           .buddies-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr !important;
           }
         }
         @media (max-width: 640px) {

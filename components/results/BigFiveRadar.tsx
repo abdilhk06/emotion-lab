@@ -8,10 +8,12 @@ const RADAR_LABELS = [
   { key: "neuroticism", label: "Stabilite", angle: 198 },
 ] as const;
 
-const FORCE_META: Array<{ key: keyof BigFiveScores; icon: string; text: string }> = [
-  { key: "agreeableness", icon: "AG", text: "Tu es empathique et cooperatif.ve. Les autres se confient facilement a toi." },
-  { key: "extraversion", icon: "EX", text: "Tu tires de l'energie des interactions et du travail collectif." },
-  { key: "openness", icon: "OU", text: "Tu restes curieux.se, ouvert.e aux idees nouvelles et aux perspectives variees." },
+const FORCE_META: Array<{ key: keyof BigFiveScores; label: string; icon: string; text: string }> = [
+  { key: "agreeableness", label: "Agreabilite", icon: "AG", text: "Tu es empathique et cooperatif.ve. Les autres se confient facilement a toi." },
+  { key: "extraversion", label: "Extraversion", icon: "EX", text: "Tu tires de l'energie des interactions et du travail collectif." },
+  { key: "openness", label: "Ouverture", icon: "OU", text: "Tu restes curieux.se, ouvert.e aux idees nouvelles et aux perspectives variees." },
+  { key: "conscientiousness", label: "Organisation", icon: "OR", text: "Tu sais poser un cadre clair et avancer avec regularite quand l'objectif est net." },
+  { key: "neuroticism", label: "Sensibilite", icon: "SE", text: "Tu captes vite les tensions et les signaux faibles autour de toi." },
 ];
 
 function polarToCartesian(angle: number, radius: number) {
@@ -83,7 +85,7 @@ export function BigFiveRadar({
             <div className="force-item" key={force.key}>
               <div className="force-icon">{force.icon}</div>
               <div className="force-content">
-                <h4>{force.key === "agreeableness" ? "Agreabilite" : force.key === "extraversion" ? "Extraversion" : "Ouverture"} : {scores[force.key]}/100</h4>
+                <h4>{force.label} : {scores[force.key]}/100</h4>
                 <p>{force.text}</p>
               </div>
             </div>
