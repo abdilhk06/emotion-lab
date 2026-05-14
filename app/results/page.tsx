@@ -235,7 +235,7 @@ export default function ResultsPage() {
     return (
       <div className="connected-results">
         <div className="results-container">
-          <ResultsHero mbtiCode={result.mbti_code} mbtiName={result.mbti_name} explanation={`« ${explanation} »`} ctaLabel="📥 Partager mon profil" />
+          <ResultsHero mbtiCode={result.mbti_code} mbtiName={result.mbti_name} explanation={`« ${explanation} »`} ctaLabel="📥 Partager mon profil" eyebrow="✨ Ton profil est prêt" />
           <div className="results-body">
             <section className="results-section">
               <div className="results-section-title">Tes 4 dimensions</div>
@@ -469,6 +469,7 @@ export default function ResultsPage() {
           background: #fff;
           color: #8a315f;
           font-weight: 900;
+          font-size: 20px;
         }
         :global(.force-content h4) {
           margin: 0 0 4px;

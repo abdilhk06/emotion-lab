@@ -9,11 +9,11 @@ const RADAR_LABELS = [
 ] as const;
 
 const FORCE_META: Array<{ key: keyof BigFiveScores; label: string; icon: string; text: string }> = [
-  { key: "agreeableness", label: "Agreabilite", icon: "AG", text: "Tu es empathique et cooperatif.ve. Les autres se confient facilement a toi." },
-  { key: "extraversion", label: "Extraversion", icon: "EX", text: "Tu tires de l'energie des interactions et du travail collectif." },
-  { key: "openness", label: "Ouverture", icon: "OU", text: "Tu restes curieux.se, ouvert.e aux idees nouvelles et aux perspectives variees." },
-  { key: "conscientiousness", label: "Organisation", icon: "OR", text: "Tu sais poser un cadre clair et avancer avec regularite quand l'objectif est net." },
-  { key: "neuroticism", label: "Sensibilite", icon: "SE", text: "Tu captes vite les tensions et les signaux faibles autour de toi." },
+  { key: "agreeableness", label: "Agreabilite", icon: "❤️", text: "Tu es empathique et cooperatif.ve. Les autres se confient facilement a toi." },
+  { key: "extraversion", label: "Extraversion", icon: "⚡", text: "Tu tires de l'energie des interactions et du travail collectif." },
+  { key: "openness", label: "Ouverture", icon: "🌱", text: "Tu restes curieux.se, ouvert.e aux idees nouvelles et aux perspectives variees." },
+  { key: "conscientiousness", label: "Organisation", icon: "🗂️", text: "Tu sais poser un cadre clair et avancer avec regularite quand l'objectif est net." },
+  { key: "neuroticism", label: "Sensibilite", icon: "🎯", text: "Tu captes vite les tensions et les signaux faibles autour de toi." },
 ];
 
 function polarToCartesian(angle: number, radius: number) {
@@ -55,7 +55,7 @@ export function BigFiveRadar({
       {description ? <p className="results-section-description">{description}</p> : null}
       <div className="big-five-grid">
         <div className="radar-card">
-          <svg className="radar-svg" viewBox="0 0 360 360" role="img" aria-label="Radar Big Five">
+          <svg className="radar-svg" viewBox="-60 -30 480 420" role="img" aria-label="Radar Big Five">
             {[120, 86, 52].map((radius) => (
               <polygon className="radar-grid-line" fill="none" stroke="#ded7e5" strokeWidth="1.2" key={radius} points={polygonString(pointsForRadius(radius))} />
             ))}
