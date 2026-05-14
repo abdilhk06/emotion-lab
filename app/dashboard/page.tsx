@@ -14,6 +14,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 type ProfileRow = {
   id: string;
   pseudo: string | null;
+  study_level: string | null;
 };
 
 type TestResultRow = {
@@ -30,33 +31,38 @@ type DashboardData = {
   hasResult: boolean;
   buddiesCount: number;
   unreadMessages: number;
+  pendingRequests: number;
 };
 
 type DashboardState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "ready"; data: DashboardData }
-  | { status: "empty"; data: DashboardData };
-
-const DEFAULT_DATA: DashboardData = {
-  pseudo: "Ghita",
-  mbtiCode: "ENFJ",
-  mbtiName: "Le Protagoniste",
-  school: "PM — ISCAE",
-  hasResult: true,
-  buddiesCount: 3,
-  unreadMessages: 3,
-};
+  | { status: "empty"; data: DashboardData; reasons: Array<"profile" | "result"> };
 
 const DASHBOARD_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "home" as const, active: true },
   { href: "/test/results", label: "Mes resultats", icon: "chart" as const },
   { href: "/buddies", label: "Annuaire Buddy", icon: "users" as const },
-  { href: "/requests", label: "Mes demandes", icon: "mail" as const, badge: 2 },
-  { href: "/messages", label: "Messagerie", icon: "message" as const, badge: 3 },
+  { href: "/requests", label: "Mes demandes", icon: "mail" as const },
+  { href: "/messages", label: "Messagerie", icon: "message" as const },
   { href: "/chatbot", label: "Chatbot", icon: "bot" as const },
   { href: "/resources", label: "Ressources", icon: "book" as const },
 ];
+
+function pairFilter(userId: string): string {
+  return `sender_id.eq.${userId},receiver_id.eq.${userId}`;
+}
+
+function countOrZero(count: number | null): number {
+  return count ?? 0;
+}
+
+function displayName(profile: ProfileRow | null, email?: string): string {
+  const pseudo = profile?.pseudo?.trim();
+  if (pseudo) return pseudo;
+  return email?.split("@")[0] || "Ton profil";
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -78,8 +84,8 @@ export default function DashboardPage() {
           return;
         }
 
-        const [profileRes, resultRes] = await Promise.all([
-          supabase.from("profiles").select("id, pseudo").eq("id", user.id).maybeSingle<ProfileRow>(),
+        const [profileRes, resultRes, conversationsRes, pendingRequestsRes] = await Promise.all([
+          supabase.from("profiles").select("id, pseudo, study_level").eq("id", user.id).maybeSingle<ProfileRow>(),
           supabase
             .from("test_results")
             .select("mbti_code, mbti_name, created_at")
@@ -87,27 +93,61 @@ export default function DashboardPage() {
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle<TestResultRow>(),
+          supabase.from("conversations").select("id", { count: "exact" }).or(pairFilter(user.id)),
+          supabase
+            .from("buddy_requests")
+            .select("*", { count: "exact", head: true })
+            .eq("receiver_id", user.id)
+            .eq("status", "pending"),
         ]);
 
         const profile = profileRes.data;
         const result = resultRes.data;
 
-        const data: DashboardData = {
-          ...DEFAULT_DATA,
-          pseudo: DEFAULT_DATA.pseudo,
-          mbtiCode: result?.mbti_code ?? DEFAULT_DATA.mbtiCode,
-          mbtiName: result?.mbti_name ?? DEFAULT_DATA.mbtiName,
-          hasResult: true,
-        };
-
-        if (profileRes.error || resultRes.error) {
-          const message = profileRes.error?.message ?? resultRes.error?.message ?? "Impossible de charger ton dashboard.";
+        if (profileRes.error || resultRes.error || conversationsRes.error || pendingRequestsRes.error) {
+          const message =
+            profileRes.error?.message ??
+            resultRes.error?.message ??
+            conversationsRes.error?.message ??
+            pendingRequestsRes.error?.message ??
+            "Impossible de charger ton dashboard.";
           setState({ status: "error", message });
           return;
         }
 
-        if (!profile) {
-          setState({ status: "empty", data });
+        const conversationIds = (conversationsRes.data ?? []).map((conversation) => conversation.id);
+        const unreadRes =
+          conversationIds.length > 0
+            ? await supabase
+                .from("messages")
+                .select("*", { count: "exact", head: true })
+                .in("conversation_id", conversationIds)
+                .neq("sender_id", user.id)
+                .is("read_at", null)
+            : { count: 0, error: null };
+
+        if (unreadRes.error) {
+          setState({ status: "error", message: unreadRes.error.message });
+          return;
+        }
+
+        const data: DashboardData = {
+          pseudo: displayName(profile, user.email),
+          mbtiCode: result?.mbti_code ?? null,
+          mbtiName: result?.mbti_name ?? null,
+          school: profile?.study_level?.trim() || "Niveau non precise",
+          hasResult: Boolean(result),
+          buddiesCount: countOrZero(conversationsRes.count),
+          unreadMessages: countOrZero(unreadRes.count),
+          pendingRequests: countOrZero(pendingRequestsRes.count),
+        };
+
+        const reasons: Array<"profile" | "result"> = [];
+        if (!profile) reasons.push("profile");
+        if (!result) reasons.push("result");
+
+        if (reasons.length > 0) {
+          setState({ status: "empty", data, reasons });
           return;
         }
 
@@ -146,18 +186,29 @@ export default function DashboardPage() {
     }
 
     const data = state.data;
-    const profileTileSub = data.mbtiName ?? "Le Protagoniste";
+    const profileTileSub = data.mbtiName ?? "Passe le test pour debloquer ton profil";
+    const buddyLabel = data.buddiesCount === 1 ? "conversation" : "conversations";
 
     return (
       <div className="dashboard-stack">
         <DashboardGreeting pseudo={data.pseudo} mbtiCode={data.mbtiCode} mbtiName={data.mbtiName} school={data.school} />
 
-        {state.status === "empty" ? (
+        {state.status === "empty" && state.reasons.includes("profile") ? (
           <section className="dash-state-card" role="status">
             <h3>Profil incomplet</h3>
-            <p>Ton profil est encore vide. Tu peux deja passer le test pour personnaliser ton dashboard.</p>
+            <p>Ton profil est encore vide. Complete-le pour personnaliser ton dashboard.</p>
             <Link className="btn btn-primary" href="/test/intro">
               Demarrer le test
+            </Link>
+          </section>
+        ) : null}
+
+        {state.status === "empty" && state.reasons.includes("result") ? (
+          <section className="dash-state-card" role="status">
+            <h3>Aucun resultat disponible</h3>
+            <p>Passe le test pour afficher ton profil MBTI et recevoir des suggestions adaptees.</p>
+            <Link className="btn btn-primary" href="/test/intro">
+              Passer le test
             </Link>
           </section>
         ) : null}
@@ -168,14 +219,14 @@ export default function DashboardPage() {
             title="Ton profil"
             value={data.mbtiCode ?? "--"}
             subtitle={profileTileSub}
-            ctaLabel="Voir les details"
+            ctaLabel={data.hasResult ? "Voir les details" : "Passer le test"}
             href="/test/results"
           />
           <DashboardTile
             variant="buddies"
             title="Tes Buddies actifs"
-            value={`${data.buddiesCount} binomes`}
-            subtitle="Tout se passe bien ?"
+            value={`${data.buddiesCount} ${buddyLabel}`}
+            subtitle={data.buddiesCount > 0 ? "Tout se passe bien ?" : "Aucune conversation active"}
             ctaLabel="Aller a l'annuaire"
             href="/buddies"
           />
@@ -183,7 +234,7 @@ export default function DashboardPage() {
             variant="messages"
             title="Messages"
             value={`${data.unreadMessages}`}
-            subtitle="non lus · Salma, Yassine, Lina"
+            subtitle={data.unreadMessages > 0 ? "messages non lus" : "aucun message non lu"}
             ctaLabel="Voir mes conversations"
             href="/messages"
           />
@@ -209,8 +260,17 @@ export default function DashboardPage() {
     );
   }, [state]);
 
+  const layoutNav =
+    state.status === "ready" || state.status === "empty"
+      ? DASHBOARD_NAV.map((item) => {
+          if (item.href === "/requests") return { ...item, badge: state.data.pendingRequests || undefined };
+          if (item.href === "/messages") return { ...item, badge: state.data.unreadMessages || undefined };
+          return item;
+        })
+      : DASHBOARD_NAV;
+
   return (
-    <AppLayout title="Dashboard" nav={DASHBOARD_NAV}>
+    <AppLayout title="Dashboard" nav={layoutNav}>
       {content}
       <style jsx>{`
         .dashboard-stack {
