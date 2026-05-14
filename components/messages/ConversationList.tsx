@@ -116,6 +116,7 @@ async function fetchConversationsForUser(userId: string) {
 export function ConversationList() {
   const router = useRouter();
   const [state, setState] = useState<MessagesState>({ status: "loading" });
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const run = async () => {
@@ -235,11 +236,17 @@ export function ConversationList() {
       );
     }
 
-    if (state.items.length === 0) {
+    const filteredItems = state.items.filter((item) => {
+      const search = query.trim().toLowerCase();
+      if (!search) return true;
+      return `${item.pseudo} ${item.preview}`.toLowerCase().includes(search);
+    });
+
+    if (filteredItems.length === 0) {
       return (
         <section className="state-card" role="status">
-          <h2>Aucune conversation pour l&apos;instant</h2>
-          <p>Commence par trouver un buddy dans l&apos;annuaire pour lancer une premiere discussion.</p>
+          <h2>Aucune conversation trouvée</h2>
+          <p>Essaie un autre pseudo ou démarre une nouvelle discussion depuis l&apos;annuaire.</p>
           <Link className="btn btn-primary" href="/buddies">
             Aller vers l&apos;annuaire Buddy
           </Link>
@@ -248,8 +255,8 @@ export function ConversationList() {
     }
 
     return (
-      <section className="messages-grid" aria-label="Liste des conversations">
-        {state.items.map((item) => (
+      <section className="conv-list" aria-label="Liste des conversations">
+        {filteredItems.map((item) => (
           <ConversationItem
             key={item.id}
             conversationId={item.id}
@@ -262,12 +269,20 @@ export function ConversationList() {
         ))}
       </section>
     );
-  }, [state]);
+  }, [query, state]);
 
   return (
     <AppLayout title="Messagerie">
       <div className="messages-page">
-        <p className="subtitle">Retrouve toutes tes conversations Buddy, triees des plus recentes aux plus anciennes.</p>
+        <h1>Messagerie</h1>
+        <label className="messages-search" aria-label="Rechercher une conversation">
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Rechercher une conversation..."
+          />
+        </label>
         {content}
       </div>
 
@@ -277,15 +292,33 @@ export function ConversationList() {
           gap: 14px;
         }
 
-        .subtitle {
+        .messages-page h1 {
           margin: 0;
-          color: var(--texte-gris);
+          color: #7e3d5e;
+          font-size: 32px;
         }
 
-        .messages-grid {
-          display: grid;
-          gap: 12px;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+        .messages-search {
+          display: block;
+          background: #fff;
+          border: 1px solid #e4dcea;
+          border-radius: 12px;
+          padding: 12px 14px;
+        }
+
+        .messages-search input {
+          width: 100%;
+          border: 0;
+          outline: 0;
+          color: var(--texte);
+          font-size: 14px;
+          background: transparent;
+        }
+
+        .conv-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
         .state-card {
@@ -311,10 +344,70 @@ export function ConversationList() {
           background: #fff8f9;
         }
 
-        @media (max-width: 1023px) {
-          .messages-grid {
-            grid-template-columns: 1fr;
-          }
+        :global(.conv-row) {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          background: #fff;
+          border: 1px solid #e4dcea;
+          border-radius: 14px;
+          padding: 16px;
+          text-decoration: none;
+          color: inherit;
+          transition: background 0.15s;
+        }
+        :global(.conv-row:hover) {
+          background: #faf8fc;
+        }
+        :global(.conv-avatar) {
+          width: 48px;
+          height: 48px;
+          border-radius: 999px;
+          flex-shrink: 0;
+          background: linear-gradient(135deg, #9d4b7a, #2f91bd);
+          color: #fff;
+          font-weight: 700;
+          font-size: 19px;
+          display: grid;
+          place-items: center;
+        }
+        :global(.conv-body) {
+          flex: 1;
+          min-width: 0;
+        }
+        :global(.conv-handle) {
+          color: #7e3d5e;
+          font-weight: 700;
+          font-size: 15px;
+        }
+        :global(.conv-preview) {
+          margin: 2px 0 0;
+          color: #66738e;
+          font-size: 14px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        :global(.conv-right) {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 6px;
+        }
+        :global(.conv-time) {
+          color: #9aa4b8;
+          font-size: 12px;
+        }
+        :global(.unread-badge) {
+          background: #8a3b65;
+          color: #fff;
+          border-radius: 999px;
+          width: 20px;
+          height: 20px;
+          font-size: 11px;
+          font-weight: 700;
+          display: grid;
+          place-items: center;
         }
       `}</style>
     </AppLayout>

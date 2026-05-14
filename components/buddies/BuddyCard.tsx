@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 type BuddyCardProps = {
   id: string;
   pseudo: string;
@@ -9,6 +7,7 @@ type BuddyCardProps = {
   bio: string;
   sharedHobbies: string[];
   compatibility: number;
+  mbti?: string;
 };
 
 function initialsFromPseudo(pseudo: string): string {
@@ -17,41 +16,32 @@ function initialsFromPseudo(pseudo: string): string {
   return trimmed.replace(/^@/, "").charAt(0).toUpperCase();
 }
 
-function compatibilityTone(score: number): "high" | "mid" | "low" {
-  if (score >= 80) return "high";
-  if (score >= 65) return "mid";
-  return "low";
-}
-
-export function BuddyCard({ id, pseudo, studyLevel, bio, sharedHobbies, compatibility }: BuddyCardProps) {
-  const tone = compatibilityTone(compatibility);
+export function BuddyCard({ pseudo, studyLevel, bio, sharedHobbies, compatibility, mbti = "MBTI" }: BuddyCardProps) {
   return (
-    <article className="buddy-card">
-      <span className={`buddy-compat ${tone}`}>{compatibility}%</span>
-      <div className="buddy-top">
-        <div className="buddy-avatar" aria-hidden="true">
+    <article className="buddy-dir-card">
+      <span className="compat-badge">{compatibility}%</span>
+      <div className="card-header">
+        <div className="avatar" aria-hidden="true">
           {initialsFromPseudo(pseudo)}
         </div>
         <div>
           <h3>{pseudo}</h3>
-          <p>{studyLevel}</p>
+          <span className="meta">{mbti} · {studyLevel}</span>
         </div>
       </div>
-      <p className="buddy-bio">{bio}</p>
-      <div className="buddy-hobbies">
+      <p className="tagline">« {bio} »</p>
+      <div className="chips">
         {sharedHobbies.length > 0 ? (
           sharedHobbies.slice(0, 3).map((hobby) => (
-            <span key={hobby} className="buddy-chip">
+            <span key={hobby} className="chip">
               {hobby}
             </span>
           ))
         ) : (
-          <span className="buddy-chip buddy-chip-muted">Aucun hobby partage pour le moment</span>
+          <span className="chip">✨ Découverte</span>
         )}
       </div>
-      <Link className="btn btn-primary" href={`/buddies/${id}`}>
-        Voir le profil
-      </Link>
+      <button className="btn-send" type="button">Envoyer une demande</button>
     </article>
   );
 }

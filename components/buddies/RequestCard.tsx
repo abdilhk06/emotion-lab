@@ -36,13 +36,11 @@ function getInitials(pseudo: string): string {
 function formatDateLabel(dateValue: string): string {
   const dt = new Date(dateValue);
   if (Number.isNaN(dt.getTime())) return "Date inconnue";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(dt);
-}
-
-function getStatusLabel(status: RequestStatus): string {
-  if (status === "accepted") return "Acceptee";
-  if (status === "rejected") return "Refusee";
-  return "En attente";
+  const diff = Date.now() - dt.getTime();
+  const day = 24 * 60 * 60 * 1000;
+  if (diff < day) return "Aujourd'hui";
+  if (diff < 2 * day) return "Hier";
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(dt);
 }
 
 export function RequestCard({ item, mode, busyAction, disabled, successMessage, onAccept, onReject }: RequestCardProps) {
@@ -51,18 +49,16 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
 
   return (
     <article className="request-card">
-      <div className="request-head">
-        <div className="request-avatar" aria-hidden="true">{initials}</div>
-        <div className="request-meta">
+      <div className="req-header">
+        <div className="req-avatar" aria-hidden="true">{initials}</div>
+        <div className="req-info">
           <h3>{item.profile.pseudo}</h3>
-          <p>{item.profile.studyLevel}</p>
+          <span className="req-meta">MBTI · {item.profile.studyLevel} · 82% compat</span>
         </div>
-        <div className={`request-status request-status-${item.status}`}>{getStatusLabel(item.status)}</div>
+        <span className="req-time">{formatDateLabel(item.createdAt)}</span>
       </div>
 
-      <p className="request-date">{formatDateLabel(item.createdAt)}</p>
-
-      {item.message ? <p className="request-message">&quot;{item.message}&quot;</p> : <p className="request-message-empty">Aucun message ajoute.</p>}
+      {item.message ? <blockquote className="req-message">« {item.message} »</blockquote> : <blockquote className="req-message">« J&apos;aimerais rejoindre ton cercle Buddy. »</blockquote>}
 
       <RequestActions
         canAct={canAct}
@@ -75,23 +71,23 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
 
       <style jsx>{`
         .request-card {
-          border: 1px solid var(--bordure);
-          border-radius: 16px;
           background: #fff;
-          padding: 14px;
+          border: 1px solid #e4dcea;
+          border-radius: 16px;
+          padding: 20px;
           display: grid;
-          gap: 10px;
+          gap: 14px;
         }
-        .request-head {
+        .req-header {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 14px;
         }
-        .request-avatar {
+        .req-avatar {
           width: 46px;
           height: 46px;
-          border-radius: 12px;
-          background: var(--gradient-signature);
+          border-radius: 999px;
+          background: linear-gradient(135deg, #9d4b7a, #2f91bd);
           color: #fff;
           display: inline-flex;
           align-items: center;
@@ -100,50 +96,30 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
           font-weight: 700;
           overflow: hidden;
         }
-        .request-meta {
+        .req-info {
           min-width: 0;
         }
-        .request-meta h3 {
+        .req-info h3 {
           margin: 0;
           font-size: 16px;
         }
-        .request-meta p {
-          margin: 0;
-          color: var(--texte-clair);
+        .req-meta {
+          color: #66738e;
           font-size: 13px;
         }
-        .request-status {
+        .req-time {
           margin-left: auto;
-          font-size: 12px;
-          font-weight: 700;
-          border-radius: 999px;
-          padding: 6px 10px;
+          color: #9aa4b8;
+          font-size: 13px;
         }
-        .request-status-pending {
-          color: #7a5d0b;
-          background: #fff7e9;
-        }
-        .request-status-accepted {
-          color: #0e9f6e;
-          background: #ebfff5;
-        }
-        .request-status-rejected {
-          color: #b42318;
-          background: #fff3f2;
-        }
-        .request-date {
+        .req-message {
           margin: 0;
-          font-size: 12px;
-          color: var(--texte-clair);
-        }
-        .request-message,
-        .request-message-empty {
-          margin: 0;
-          color: var(--texte-gris);
-          font-size: 14px;
-        }
-        .request-message-empty {
+          padding: 12px 14px;
+          background: #faf7fc;
+          border-left: 3px solid #e4dcea;
+          border-radius: 8px;
           font-style: italic;
+          color: #26365a;
         }
       `}</style>
     </article>

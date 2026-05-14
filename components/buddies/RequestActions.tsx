@@ -31,7 +31,8 @@ export function RequestActions({
       <button type="button" className="btn btn-primary" disabled={acceptDisabled} onClick={onAccept}>
         {busyAction === "accept" ? "Acceptation..." : "Accepter"}
       </button>
-      <button type="button" className="btn request-btn-ghost" disabled={rejectDisabled} onClick={onReject}>
+      <button type="button" className="btn btn-outline">Voir profil</button>
+      <button type="button" className="btn btn-ghost" disabled={rejectDisabled} onClick={onReject}>
         {busyAction === "reject" ? "Refus..." : "Refuser"}
       </button>
       {successMessage ? <p className="request-action-success">{successMessage}</p> : null}
@@ -39,13 +40,33 @@ export function RequestActions({
         .request-actions {
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 10px;
           align-items: center;
         }
-        .request-btn-ghost {
+        .request-actions :global(.btn-primary) {
+          flex: 1;
+          background: #8a3b65;
+          color: #fff;
+          border: 0;
+          border-radius: 10px;
+          padding: 12px;
+          font-weight: 700;
+        }
+        .request-actions :global(.btn-outline) {
+          flex: 1;
           background: #fff;
-          color: var(--texte-gris);
-          border: 1px solid var(--bordure);
+          color: #8a3b65;
+          border: 1px solid #8a3b65;
+          border-radius: 10px;
+          padding: 12px;
+          font-weight: 700;
+        }
+        .request-actions :global(.btn-ghost) {
+          background: transparent;
+          color: #66738e;
+          border: 0;
+          padding: 12px;
+          cursor: pointer;
         }
         .request-action-readonly p,
         .request-action-success {

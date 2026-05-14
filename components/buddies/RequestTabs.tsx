@@ -231,26 +231,29 @@ export function RequestTabs() {
 
   return (
     <div className="requests-page">
-      <p className="requests-subtitle">Gere tes invitations recues et envoyees.</p>
+      <div className="requests-title">
+        <h1>Mes demandes</h1>
+        <p>Gère tes invitations reçues et envoyées.</p>
+      </div>
 
-      <div className="requests-tabs" role="tablist" aria-label="Demandes buddies">
+      <div className="tab-bar" role="tablist" aria-label="Demandes buddies">
         <button
           type="button"
           role="tab"
-          className={`requests-tab ${activeTab === "received" ? "active" : ""}`}
+          className={`tab ${activeTab === "received" ? "active" : ""}`}
           aria-selected={activeTab === "received"}
           onClick={() => setActiveTab("received")}
         >
-          Recues ({counts.received})
+          Reçues <span className="tab-badge">{counts.received}</span>
         </button>
         <button
           type="button"
           role="tab"
-          className={`requests-tab ${activeTab === "sent" ? "active" : ""}`}
+          className={`tab ${activeTab === "sent" ? "active" : ""}`}
           aria-selected={activeTab === "sent"}
           onClick={() => setActiveTab("sent")}
         >
-          Envoyees ({counts.sent})
+          Envoyées ({counts.sent})
         </button>
       </div>
 
@@ -314,34 +317,42 @@ export function RequestTabs() {
           display: grid;
           gap: 14px;
         }
-        .requests-subtitle {
+        .requests-title h1 {
+          margin: 0 0 6px;
+          color: #7e3d5e;
+          font-size: 32px;
+        }
+        .requests-title p {
           margin: 0;
           color: var(--texte-gris);
         }
-        .requests-tabs {
-          display: inline-flex;
+        .tab-bar {
+          display: flex;
           gap: 8px;
-          padding: 6px;
-          border: 1px solid var(--bordure);
-          border-radius: 12px;
-          background: #fff;
-          width: fit-content;
-          max-width: 100%;
+          margin-bottom: 6px;
         }
-        .requests-tab {
+        .tab {
+          padding: 10px 18px;
+          border-radius: 10px;
+          cursor: pointer;
           border: 1px solid transparent;
           background: transparent;
-          color: var(--texte-gris);
           font-weight: 600;
-          border-radius: 10px;
-          padding: 8px 12px;
-          cursor: pointer;
+          color: #66738e;
           white-space: nowrap;
         }
-        .requests-tab.active {
-          border-color: #e9deef;
-          background: #f8eef5;
-          color: var(--plum);
+        .tab.active {
+          background: #fff;
+          border-color: #e4dcea;
+          color: #07123a;
+        }
+        .tab-badge {
+          background: #f5dde9;
+          color: #8a3b65;
+          border-radius: 999px;
+          padding: 1px 7px;
+          font-size: 12px;
+          margin-left: 6px;
         }
         .requests-state-card {
           background: #fff;
@@ -384,18 +395,44 @@ export function RequestTabs() {
         }
         .requests-list {
           display: grid;
-          gap: 10px;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
         }
         @media (max-width: 899px) {
-          .requests-list {
-            grid-template-columns: 1fr;
-          }
-          .requests-tabs {
+          .tab-bar {
             width: 100%;
             display: grid;
             grid-template-columns: 1fr 1fr;
           }
+        }
+        :global(.request-actions) {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        :global(.request-actions .btn-primary) {
+          flex: 1;
+          background: #8a3b65;
+          color: #fff;
+          border: 0;
+          border-radius: 10px;
+          padding: 12px;
+          font-weight: 700;
+        }
+        :global(.request-actions .btn-outline) {
+          flex: 1;
+          background: #fff;
+          color: #8a3b65;
+          border: 1px solid #8a3b65;
+          border-radius: 10px;
+          padding: 12px;
+          font-weight: 700;
+        }
+        :global(.request-actions .btn-ghost) {
+          background: transparent;
+          color: #66738e;
+          border: 0;
+          padding: 12px;
+          cursor: pointer;
         }
       `}</style>
     </div>

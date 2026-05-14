@@ -32,6 +32,7 @@ type BuddyItem = {
   pseudo: string;
   bio: string;
   studyLevel: string;
+  mbti: string;
   sharedHobbies: string[];
   compatibility: number;
 };
@@ -124,8 +125,9 @@ export function BuddyDirectoryPage() {
           return {
             id: profile.id,
             pseudo: profile.pseudo?.trim() || "@buddy",
-            bio: profile.bio?.trim() || "Aucune bio pour le moment.",
+            bio: profile.bio?.trim() || "Toujours partant·e pour reviser, rire et partager de nouvelles passions.",
             studyLevel: profile.study_level?.trim() || "Niveau non precise",
+            mbti: latestResultByUser.get(profile.id) ?? "MBTI",
             sharedHobbies,
             compatibility,
           };
@@ -187,14 +189,15 @@ export function BuddyDirectoryPage() {
 
       {state.status === "ready" ? (
         <div className="buddy-directory">
-          <div className="buddy-head">
-            <p>{filteredBuddies.length} etudiant·es visibles, tries par compatibilite</p>
+          <div className="buddy-page-title">
+            <h1>Annuaire Buddy</h1>
+            <p>{filteredBuddies.length} étudiant·es actuellement actifs · triés par compatibilité avec ton profil</p>
           </div>
-          <SearchBar value={query} onChange={setQuery} placeholder="Rechercher par pseudo, bio ou niveau..." ariaLabel="Rechercher un buddy" />
+          <SearchBar value={query} onChange={setQuery} placeholder="Rechercher par pseudo..." ariaLabel="Rechercher par pseudo" />
 
           <div className="buddy-filters">
             <button type="button" className={`filter-chip ${highCompatibilityOnly ? "active" : ""}`} onClick={() => setHighCompatibilityOnly((prev) => !prev)}>
-              Compatibilite elevee
+              Compatibilité élevée{highCompatibilityOnly ? " ×" : ""}
             </button>
             {state.studyLevels.map((level) => (
               <button
@@ -203,7 +206,7 @@ export function BuddyDirectoryPage() {
                 className={`filter-chip ${selectedLevel === level ? "active" : ""}`}
                 onClick={() => setSelectedLevel((prev) => (prev === level ? null : level))}
               >
-                {level}
+                {level}{selectedLevel === level ? " ×" : ""}
               </button>
             ))}
             {state.allHobbies.map((hobby) => (
@@ -213,7 +216,7 @@ export function BuddyDirectoryPage() {
                 className={`filter-chip ${selectedHobby === hobby ? "active" : ""}`}
                 onClick={() => setSelectedHobby((prev) => (prev === hobby ? null : hobby))}
               >
-                {hobby}
+                {hobby}{selectedHobby === hobby ? " ×" : ""}
               </button>
             ))}
           </div>
@@ -224,13 +227,14 @@ export function BuddyDirectoryPage() {
               <p>Essaie de retirer un filtre ou de modifier ta recherche.</p>
             </section>
           ) : (
-            <div className="buddy-grid">
+            <div className="buddy-dir-grid">
               {filteredBuddies.map((buddy) => (
                 <BuddyCard
                   key={buddy.id}
                   id={buddy.id}
                   pseudo={buddy.pseudo}
                   studyLevel={buddy.studyLevel}
+                  mbti={buddy.mbti}
                   bio={buddy.bio}
                   sharedHobbies={buddy.sharedHobbies}
                   compatibility={buddy.compatibility}
@@ -238,6 +242,9 @@ export function BuddyDirectoryPage() {
               ))}
             </div>
           )}
+          <div className="buddy-load-wrap">
+            <button type="button" className="btn-load-more">Charger plus de Buddies</button>
+          </div>
         </div>
       ) : null}
 
@@ -409,6 +416,154 @@ export function BuddyDirectoryPage() {
           }
           :global(.buddy-card .btn) {
             width: 100%;
+          }
+        }
+        .buddy-directory {
+          gap: 16px;
+        }
+        .buddy-page-title h1 {
+          margin: 0 0 6px;
+          color: #7e3d5e;
+          font-size: 32px;
+        }
+        .buddy-page-title p {
+          margin: 0;
+          color: var(--texte-gris);
+          font-size: 15px;
+        }
+        :global(.buddy-search) {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: 1px solid #e4dcea;
+          background: #fff;
+        }
+        :global(.buddy-search svg) {
+          width: 16px;
+          height: 16px;
+          fill: none;
+          stroke: var(--texte-clair);
+          stroke-width: 2;
+        }
+        :global(.buddy-search input) {
+          width: 100%;
+          border: 0;
+          outline: 0;
+          background: transparent;
+          font-size: 14px;
+          color: var(--texte);
+        }
+        .filter-chip {
+          border-radius: 999px;
+          padding: 6px 14px;
+          border: 1px solid #e4dcea;
+          cursor: pointer;
+          font-size: 14px;
+          background: #fff;
+          color: var(--texte-gris);
+        }
+        .filter-chip.active {
+          background: #7e3d5e;
+          color: #fff;
+          border-color: #7e3d5e;
+        }
+        .buddy-load-wrap {
+          display: flex;
+          justify-content: center;
+          padding-top: 4px;
+        }
+        .btn-load-more {
+          border: 1px solid #8a3b65;
+          color: #8a3b65;
+          background: #fff;
+          border-radius: 10px;
+          padding: 12px 18px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        :global(.buddy-dir-grid) {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+        }
+        :global(.buddy-dir-card) {
+          position: relative;
+          background: #fff;
+          border: 1px solid #e4dcea;
+          border-radius: 16px;
+          padding: 20px;
+          display: grid;
+          gap: 12px;
+        }
+        :global(.compat-badge) {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          background: #ebfff0;
+          color: #35ba72;
+          border-radius: 999px;
+          padding: 4px 10px;
+          font-size: 13px;
+          font-weight: 700;
+        }
+        :global(.card-header) {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding-right: 66px;
+        }
+        :global(.avatar) {
+          width: 50px;
+          height: 50px;
+          border-radius: 999px;
+          background: linear-gradient(135deg, #9d4b7a, #2f91bd);
+          color: #fff;
+          font-weight: 700;
+          font-size: 19px;
+          display: grid;
+          place-items: center;
+        }
+        :global(.card-header h3) {
+          margin: 0;
+          font-size: 16px;
+        }
+        :global(.meta) {
+          color: #66738e;
+          font-size: 13px;
+        }
+        :global(.tagline) {
+          margin: 0;
+          color: #26365a;
+          font-style: italic;
+        }
+        :global(.chips) {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        :global(.chip) {
+          border-radius: 999px;
+          padding: 6px 10px;
+          background: #f7f2fb;
+          color: var(--plum);
+          font-size: 13px;
+          border: 1px solid #e9deef;
+        }
+        :global(.btn-send) {
+          width: 100%;
+          padding: 13px;
+          background: #8a3b65;
+          color: #fff;
+          border: 0;
+          border-radius: 10px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        @media (max-width: 700px) {
+          :global(.buddy-dir-grid) {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
