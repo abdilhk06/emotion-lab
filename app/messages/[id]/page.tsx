@@ -43,15 +43,6 @@ type ConversationState =
       messages: { id: string; senderId: string; content: string; createdAt: string }[];
     };
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/results", label: "Mes resultats" },
-  { href: "/buddies", label: "Annuaire Buddy" },
-  { href: "/requests", label: "Mes demandes" },
-  { href: "/messages", label: "Messagerie", active: true },
-  { href: "/resources", label: "Ressources" },
-];
-
 function formatPseudo(value: string | null | undefined): string {
   const trimmed = value?.trim() ?? "";
   if (!trimmed) return "@buddy";
@@ -296,7 +287,7 @@ export default function ConversationPage() {
   }, [handleSend, isSending, sendError, state]);
 
   return (
-    <AppLayout title="Conversation" nav={NAV}>
+    <AppLayout title="Conversation">
       {content}
 
       <style jsx>{`

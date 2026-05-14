@@ -27,15 +27,6 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "ready" };
 
-const SETTINGS_NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/test/results", label: "Mes resultats" },
-  { href: "/buddies", label: "Annuaire Buddy" },
-  { href: "/requests", label: "Mes demandes" },
-  { href: "/profile", label: "Mon profil" },
-  { href: "/settings", label: "Parametres", active: true },
-];
-
 export default function SettingsPage() {
   const router = useRouter();
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -162,7 +153,7 @@ export default function SettingsPage() {
   }, [loggingOut, savingVisibility]);
 
   return (
-    <AppLayout title="Parametres" nav={SETTINGS_NAV}>
+    <AppLayout title="Parametres">
       {state.status === "loading" ? (
         <section className="settings-state-card" role="status" aria-live="polite">
           <h2>Chargement des parametres...</h2>

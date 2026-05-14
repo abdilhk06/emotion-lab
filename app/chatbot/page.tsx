@@ -16,16 +16,6 @@ type ChatMessage = {
   text: string;
 };
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/test/results", label: "Mes resultats" },
-  { href: "/buddies", label: "Annuaire Buddy" },
-  { href: "/requests", label: "Mes demandes" },
-  { href: "/messages", label: "Messagerie" },
-  { href: "/chatbot", label: "Chatbot", active: true },
-  { href: "/resources", label: "Ressources" },
-];
-
 const QUICK_REPLIES = [
   "Je suis stressé(e)",
   "J’ai du mal à dormir",
@@ -111,7 +101,7 @@ export default function ChatbotPage() {
   const isSendDisabled = useMemo(() => inputValue.trim().length === 0, [inputValue]);
 
   return (
-    <AppLayout title="Chatbot" nav={NAV}>
+    <AppLayout title="Chatbot">
       <div className="chatbot-page">
         <ChatbotHeader />
 

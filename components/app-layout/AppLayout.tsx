@@ -2,17 +2,39 @@
 
 import { ReactNode } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/dashboard/LogoutButton";
 
 type NavItem = {
   href: string;
   label: string;
   icon?: IconName;
-  badge?: number;
-  active?: boolean;
+  match: (pathname: string) => boolean;
 };
 
 type IconName = "home" | "chart" | "users" | "mail" | "message" | "bot" | "book" | "profile" | "settings";
+type BadgeKey = "requests" | "messages";
+
+const MAIN_NAV: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: "home", match: (pathname) => pathname === "/dashboard" },
+  { href: "/results", label: "Mes resultats", icon: "chart", match: (pathname) => pathname === "/results" || pathname === "/test/results" },
+  { href: "/buddies", label: "Annuaire Buddy", icon: "users", match: (pathname) => pathname === "/buddies" || pathname.startsWith("/buddies/") },
+  { href: "/requests", label: "Mes demandes", icon: "mail", match: (pathname) => pathname === "/requests" },
+  { href: "/messages", label: "Messagerie", icon: "message", match: (pathname) => pathname === "/messages" || pathname.startsWith("/messages/") },
+  { href: "/chatbot", label: "Chatbot", icon: "bot", match: (pathname) => pathname === "/chatbot" },
+  { href: "/resources", label: "Ressources", icon: "book", match: (pathname) => pathname === "/resources" },
+];
+
+const BOTTOM_NAV: NavItem[] = [
+  { href: "/profile", label: "Mon profil", icon: "profile", match: (pathname) => pathname === "/profile" },
+  { href: "/settings", label: "Parametres", icon: "settings", match: (pathname) => pathname === "/settings" },
+];
+
+function navBadge(href: string, badges?: Partial<Record<BadgeKey, number>>): number | undefined {
+  if (href === "/requests") return badges?.requests || undefined;
+  if (href === "/messages") return badges?.messages || undefined;
+  return undefined;
+}
 
 function SidebarIcon({ name }: { name: IconName }) {
   const common = {
@@ -98,16 +120,13 @@ function SidebarIcon({ name }: { name: IconName }) {
 export function AppLayout({
   title,
   children,
-  nav,
+  badges,
 }: {
   title: string;
   children: ReactNode;
-  nav: NavItem[];
+  badges?: Partial<Record<BadgeKey, number>>;
 }) {
-  const bottomLinks: NavItem[] = [
-    { href: "/profile", label: "Mon profil", icon: "profile" },
-    { href: "/settings", label: "Parametres", icon: "settings" },
-  ];
+  const pathname = usePathname();
 
   return (
     <div className="app-shell">
@@ -117,29 +136,42 @@ export function AppLayout({
         </Link>
         <nav className="sidebar-nav" aria-label="Navigation principale">
           <p className="sidebar-menu-label">Menu</p>
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              className={`sidebar-link ${item.active ? "active" : ""}`}
-              href={item.href}
-            >
-              <span className="sidebar-link-main">
-                {item.icon ? <SidebarIcon name={item.icon} /> : null}
-                <span>{item.label}</span>
-              </span>
-              {item.badge ? <span className="sidebar-badge">{item.badge}</span> : null}
-            </Link>
-          ))}
+          {MAIN_NAV.map((item) => {
+            const badge = navBadge(item.href, badges);
+            const active = item.match(pathname);
+            return (
+              <Link
+                key={item.href}
+                className={`sidebar-link ${active ? "active" : ""}`}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+              >
+                <span className="sidebar-link-main">
+                  {item.icon ? <SidebarIcon name={item.icon} /> : null}
+                  <span>{item.label}</span>
+                </span>
+                {badge ? <span className="sidebar-badge">{badge}</span> : null}
+              </Link>
+            );
+          })}
         </nav>
         <div className="sidebar-bottom">
-          {bottomLinks.map((item) => (
-            <Link key={item.href} className="sidebar-link" href={item.href}>
-              <span className="sidebar-link-main">
-                {item.icon ? <SidebarIcon name={item.icon} /> : null}
-                <span>{item.label}</span>
-              </span>
-            </Link>
-          ))}
+          {BOTTOM_NAV.map((item) => {
+            const active = item.match(pathname);
+            return (
+              <Link
+                key={item.href}
+                className={`sidebar-link ${active ? "active" : ""}`}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+              >
+                <span className="sidebar-link-main">
+                  {item.icon ? <SidebarIcon name={item.icon} /> : null}
+                  <span>{item.label}</span>
+                </span>
+              </Link>
+            );
+          })}
           <LogoutButton />
         </div>
       </aside>

@@ -40,15 +40,6 @@ type ProfileState =
   | { status: "empty"; message: string }
   | { status: "ready" };
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/results", label: "Mes resultats" },
-  { href: "/buddies", label: "Annuaire Buddy" },
-  { href: "/messages", label: "Messagerie" },
-  { href: "/resources", label: "Ressources" },
-  { href: "/profile", label: "Mon profil", active: true },
-];
-
 const BIO_MAX = 200;
 const LOOKING_FOR_MAX = 100;
 const HOBBIES_MAX = 15;
@@ -257,7 +248,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <AppLayout title="Mon profil" nav={NAV}>
+    <AppLayout title="Mon profil">
       {state.status === "loading" ? (
         <section className="profile-state-card" role="status" aria-live="polite">
           <h2>Chargement du profil...</h2>

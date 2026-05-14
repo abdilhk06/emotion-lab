@@ -24,16 +24,6 @@ type ResultsState =
   | { status: "empty" }
   | { status: "ready"; result: StoredResult };
 
-const RESULTS_NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: "home" as const },
-  { href: "/results", label: "Mes résultats", active: true, icon: "chart" as const },
-  { href: "/buddies", label: "Annuaire Buddy", icon: "users" as const },
-  { href: "/requests", label: "Mes demandes", badge: 2, icon: "mail" as const },
-  { href: "/messages", label: "Messagerie", badge: 3, icon: "message" as const },
-  { href: "/chatbot", label: "Chatbot", icon: "bot" as const },
-  { href: "/resources", label: "Ressources", icon: "book" as const },
-];
-
 const BIG_FIVE_CARDS: Array<{ key: keyof BigFiveScores; label: string }> = [
   { key: "agreeableness", label: "Agréabilité" },
   { key: "extraversion", label: "Extraversion" },
@@ -242,7 +232,7 @@ export default function ResultsPage() {
   }, [state]);
 
   return (
-    <AppLayout title="Mes résultats" nav={RESULTS_NAV}>
+    <AppLayout title="Mes résultats">
       {content}
       <style jsx>{`
         .results-stack {

@@ -41,14 +41,6 @@ type DirectoryState =
   | { status: "error"; message: string }
   | { status: "ready"; buddies: BuddyItem[]; allHobbies: string[]; studyLevels: string[] };
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/results", label: "Mes resultats" },
-  { href: "/buddies", label: "Annuaire Buddy", active: true },
-  { href: "/messages", label: "Messagerie" },
-  { href: "/resources", label: "Ressources" },
-];
-
 function normalizeText(value: string): string {
   return value
     .toLowerCase()
@@ -178,7 +170,7 @@ export function BuddyDirectoryPage() {
   }, [highCompatibilityOnly, query, selectedHobby, selectedLevel, state]);
 
   return (
-    <AppLayout title="Annuaire Buddy" nav={NAV}>
+    <AppLayout title="Annuaire Buddy">
       {state.status === "loading" ? (
         <section className="buddy-state-card" role="status" aria-live="polite">
           <h2>Chargement des buddies...</h2>

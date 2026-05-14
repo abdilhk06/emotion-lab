@@ -5,15 +5,6 @@ import { Resource } from "@/components/resources/ResourceCard";
 import { ResourceGrid } from "@/components/resources/ResourceGrid";
 import { UrgentHelpBanner } from "@/components/resources/UrgentHelpBanner";
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/test/results", label: "Mes resultats" },
-  { href: "/buddies", label: "Annuaire Buddy" },
-  { href: "/requests", label: "Mes demandes" },
-  { href: "/messages", label: "Messagerie" },
-  { href: "/resources", label: "Ressources", active: true },
-];
-
 const RESOURCES: Resource[] = [
   {
     id: "respiration-4-7-8",
@@ -63,7 +54,7 @@ const RESOURCES: Resource[] = [
 
 export default function ResourcesPage() {
   return (
-    <AppLayout title="Ressources" nav={NAV}>
+    <AppLayout title="Ressources">
       <section className="resources-page-intro">
         <h2>Ressources pour t&apos;accompagner</h2>
         <p>Articles, conseils pratiques et outils rapides pour ton bien-etre et ta reussite etudiante.</p>

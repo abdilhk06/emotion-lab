@@ -42,15 +42,6 @@ type MessagesState =
   | { status: "error"; message: string }
   | { status: "ready"; items: ConversationViewModel[] };
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/results", label: "Mes resultats" },
-  { href: "/buddies", label: "Annuaire Buddy" },
-  { href: "/requests", label: "Mes demandes" },
-  { href: "/messages", label: "Messagerie", active: true },
-  { href: "/resources", label: "Ressources" },
-];
-
 function computeOtherUserId(conversation: ConversationRow, currentUserId: string): string | null {
   const first = conversation.user_1_id ?? conversation.sender_id ?? null;
   const second = conversation.user_2_id ?? conversation.receiver_id ?? null;
@@ -274,7 +265,7 @@ export function ConversationList() {
   }, [state]);
 
   return (
-    <AppLayout title="Messagerie" nav={NAV}>
+    <AppLayout title="Messagerie">
       <div className="messages-page">
         <p className="subtitle">Retrouve toutes tes conversations Buddy, triees des plus recentes aux plus anciennes.</p>
         {content}

@@ -40,16 +40,6 @@ type DashboardState =
   | { status: "ready"; data: DashboardData }
   | { status: "empty"; data: DashboardData; reasons: Array<"profile" | "result"> };
 
-const DASHBOARD_NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: "home" as const, active: true },
-  { href: "/test/results", label: "Mes resultats", icon: "chart" as const },
-  { href: "/buddies", label: "Annuaire Buddy", icon: "users" as const },
-  { href: "/requests", label: "Mes demandes", icon: "mail" as const },
-  { href: "/messages", label: "Messagerie", icon: "message" as const },
-  { href: "/chatbot", label: "Chatbot", icon: "bot" as const },
-  { href: "/resources", label: "Ressources", icon: "book" as const },
-];
-
 function pairFilter(userId: string): string {
   return `sender_id.eq.${userId},receiver_id.eq.${userId}`;
 }
@@ -260,17 +250,13 @@ export default function DashboardPage() {
     );
   }, [state]);
 
-  const layoutNav =
+  const badges =
     state.status === "ready" || state.status === "empty"
-      ? DASHBOARD_NAV.map((item) => {
-          if (item.href === "/requests") return { ...item, badge: state.data.pendingRequests || undefined };
-          if (item.href === "/messages") return { ...item, badge: state.data.unreadMessages || undefined };
-          return item;
-        })
-      : DASHBOARD_NAV;
+      ? { requests: state.data.pendingRequests, messages: state.data.unreadMessages }
+      : undefined;
 
   return (
-    <AppLayout title="Dashboard" nav={layoutNav}>
+    <AppLayout title="Dashboard" badges={badges}>
       {content}
       <style jsx>{`
         .dashboard-stack {

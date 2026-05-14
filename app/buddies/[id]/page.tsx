@@ -64,14 +64,6 @@ type PageState =
   | { status: "not-found" }
   | { status: "ready"; data: ReadyState };
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/results", label: "Mes resultats" },
-  { href: "/buddies", label: "Annuaire Buddy", active: true },
-  { href: "/messages", label: "Messagerie" },
-  { href: "/resources", label: "Ressources" },
-];
-
 export default function BuddyDetailPage({ params }: BuddyPageProps) {
   const { id } = use(params);
   const router = useRouter();
@@ -299,7 +291,7 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
   }, [onSendRequest, state]);
 
   return (
-    <AppLayout title="Fiche Buddy" nav={NAV}>
+    <AppLayout title="Fiche Buddy">
       <div className="buddy-detail-page">
         <Link className="btn btn-tertiary buddy-back" href="/buddies">
           Retour a l&apos;annuaire
