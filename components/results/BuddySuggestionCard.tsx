@@ -20,7 +20,7 @@ export function BuddySuggestionCard({ buddy }: { buddy: BuddySuggestion }) {
           <div className="buddy-meta">{buddy.mbti} · {buddy.level}</div>
         </div>
       </div>
-      <p className="buddy-tagline">{buddy.tagline}</p>
+      <p className="buddy-tagline">« {buddy.tagline} »</p>
       <div className="buddy-common">
         {buddy.interests.length > 0 ? (
           buddy.interests.map((interest) => (

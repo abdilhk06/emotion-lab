@@ -83,14 +83,14 @@ function mbtiAxesFromScores(code: string, scores: BigFiveScores): MBTIAxisItem[]
 
 function statusForStress(value: number) {
   if (value < 35) return { label: "Faible", tone: "low" as const, description: "Tu sembles globalement bien gerer la pression actuelle." };
-  if (value < 70) return { label: "Modere — eleve", tone: "moderate" as const, description: "Tu traverses une periode intense. Notre chatbot et un.e Buddy empathique peuvent t'aider." };
-  return { label: "Eleve", tone: "high" as const, description: "Ton niveau de pression merite de vrais temps de recuperation et du soutien." };
+  if (value < 70) return { label: "Modéré", tone: "moderate" as const, description: "Tu traverses une periode intense. Notre chatbot et un.e Buddy empathique peuvent t'aider." };
+  return { label: "Élevé", tone: "high" as const, description: "Ton niveau de pression merite de vrais temps de recuperation et du soutien." };
 }
 
 function statusForBalance(value: number) {
   if (value < 40) return { label: "Spontane", tone: "moderate" as const, description: "Tu privilegies l'adaptation rapide. Un cadre leger peut t'aider a stabiliser tes priorites." };
-  if (value < 75) return { label: "Equilibree", tone: "balanced" as const, description: "Tu as un bon equilibre entre rigueur et souplesse. La matrice d'Eisenhower pourrait encore t'aider." };
-  return { label: "Organisee", tone: "balanced" as const, description: "Tu fonctionnes bien avec des routines claires et un cadre visible." };
+  if (value < 75) return { label: "Équilibré", tone: "balanced" as const, description: "Tu as un bon equilibre entre rigueur et souplesse. La matrice d'Eisenhower pourrait encore t'aider." };
+  return { label: "Organisé", tone: "balanced" as const, description: "Tu fonctionnes bien avec des routines claires et un cadre visible." };
 }
 
 function initialFor(profile: ProfileRow): string {
@@ -247,15 +247,15 @@ export default function ResultsPage() {
             </section>
 
             <section className="results-section function-section">
-              <div className="results-section-title">Comment tu fonctionnes</div>
+              <div className="results-section-title">COMMENT TU FONCTIONNES</div>
               <div className="gauges-grid">
-                <GaugeCard label="Niveau de stress" value={result.stress_score} status={stress.label} tone={stress.tone} scale={["Faible", "Modere", "Eleve"]} description={stress.description} />
-                <GaugeCard label="Style d'organisation" value={result.balance_score} status={balance.label} tone={balance.tone} scale={["Spontane", "Equilibre", "Organise"]} description={balance.description} />
+                <GaugeCard label="Niveau de stress" value={result.stress_score} status={stress.label} tone={stress.tone} scale={["Faible", "Modéré", "Élevé"]} description={stress.description} />
+                <GaugeCard label="Style d'organisation" value={result.balance_score} status={balance.label} tone={balance.tone} scale={["Spontané", "Équilibré", "Organisé"]} description={balance.description} />
               </div>
             </section>
 
             <section className="results-section buddies-section">
-              <div className="results-section-title">Tes 3 buddies suggere.es</div>
+              <div className="results-section-title">TES 3 BUDDIES SUGGÉRÉ·ES</div>
               {buddies.length === 0 ? (
                 <div className="empty-inline">Aucun buddy visible trouve pour le moment.</div>
               ) : (
@@ -268,7 +268,7 @@ export default function ResultsPage() {
             </section>
 
             <div className="results-footer">
-              <button className="btn btn-primary" type="button">📥 Telecharger mes resultats (PDF)</button>
+              <button className="btn btn-pdf" type="button">📥 Télécharger mes résultats (PDF)</button>
               <Link className="btn btn-outline" href="/dashboard">Explorer mon dashboard →</Link>
             </div>
           </div>
@@ -481,18 +481,18 @@ export default function ResultsPage() {
           color: #24375e;
           line-height: 1.45;
         }
-        .gauges-grid {
-          display: grid !important;
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          gap: 16px !important;
+        :global(.gauges-grid) {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
           width: 100%;
           align-items: stretch;
         }
         :global(.gauge-card) {
-          width: auto !important;
+          width: auto;
           min-width: 0;
           min-height: 220px;
-          padding: 26px 24px;
+          padding: 26px;
         }
         :global(.gauge-label) {
           color: #26365a;
@@ -523,6 +523,14 @@ export default function ResultsPage() {
         :global(.gauge-status.equilibre) {
           color: #35ba72;
         }
+        :global(.gauge-value-eleve),
+        :global(.gauge-status.eleve) {
+          color: #e53e3e;
+        }
+        :global(.gauge-value-faible),
+        :global(.gauge-status.faible) {
+          color: #35ba72;
+        }
         :global(.gauge-track) {
           height: 10px;
           margin-top: 15px;
@@ -539,6 +547,12 @@ export default function ResultsPage() {
         :global(.gauge-fill.equilibre) {
           background: linear-gradient(90deg, #6fc8b2, #35ba72);
         }
+        :global(.gauge-fill.eleve) {
+          background: linear-gradient(90deg, #f07f2f, #e53e3e);
+        }
+        :global(.gauge-fill.faible) {
+          background: linear-gradient(90deg, #6fc8b2, #35ba72);
+        }
         :global(.gauge-scale) {
           display: flex;
           justify-content: space-between;
@@ -550,10 +564,10 @@ export default function ResultsPage() {
           color: #24375e;
           line-height: 1.55;
         }
-        .buddies-grid {
-          display: grid !important;
-          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-          gap: 16px !important;
+        :global(.buddies-grid) {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 16px;
           align-items: stretch;
           width: 100%;
         }
@@ -623,7 +637,7 @@ export default function ResultsPage() {
         }
         :global(.chip) {
           border-radius: 999px;
-          background: #f3edf5;
+          background: #f3edf7;
           color: #4c5069;
           padding: 5px 10px;
           font-size: 13px;
@@ -674,7 +688,13 @@ export default function ResultsPage() {
           border-radius: 10px;
           padding-inline: 20px;
         }
-        .btn-outline {
+        .results-footer :global(.btn-pdf) {
+          border: 1px solid #2f91bd;
+          background: #2f91bd;
+          color: #fff;
+          font-weight: 900;
+        }
+        .results-footer :global(.btn-outline) {
           background: #fff;
           color: #8a315f;
           border: 1px solid #8a315f;
@@ -685,9 +705,9 @@ export default function ResultsPage() {
           }
           :global(.axes-grid),
           :global(.big-five-grid),
-          .gauges-grid,
-          .buddies-grid {
-            grid-template-columns: 1fr !important;
+          :global(.gauges-grid),
+          :global(.buddies-grid) {
+            grid-template-columns: 1fr;
           }
         }
         @media (max-width: 640px) {
