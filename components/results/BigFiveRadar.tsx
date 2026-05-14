@@ -17,8 +17,8 @@ const FORCE_META: Array<{ key: keyof BigFiveScores; icon: string; text: string }
 function polarToCartesian(angle: number, radius: number) {
   const rad = (Math.PI / 180) * angle;
   return {
-    x: 150 + Math.cos(rad) * radius,
-    y: 150 + Math.sin(rad) * radius,
+    x: 180 + Math.cos(rad) * radius,
+    y: 180 + Math.sin(rad) * radius,
   };
 }
 
@@ -31,7 +31,7 @@ function polygonString(points: Array<{ x: number; y: number }>) {
 }
 
 function scorePoint(angle: number, score: number) {
-  const radius = 35 + (score / 100) * 95;
+  const radius = 34 + (score / 100) * 86;
   return polarToCartesian(angle, radius);
 }
 
@@ -53,19 +53,23 @@ export function BigFiveRadar({
       {description ? <p className="results-section-description">{description}</p> : null}
       <div className="big-five-grid">
         <div className="radar-card">
-          <svg className="radar-svg" viewBox="0 0 300 300" role="img" aria-label="Radar Big Five">
-            {[125, 90, 55].map((radius) => (
-              <polygon className="radar-grid-line" key={radius} points={polygonString(pointsForRadius(radius))} />
+          <svg className="radar-svg" viewBox="0 0 360 360" role="img" aria-label="Radar Big Five">
+            {[120, 86, 52].map((radius) => (
+              <polygon className="radar-grid-line" fill="none" stroke="#ded7e5" strokeWidth="1.2" key={radius} points={polygonString(pointsForRadius(radius))} />
             ))}
-            <polygon className="radar-polygon" points={polygonString(scorePoints)} />
+            {RADAR_LABELS.map((item) => {
+              const end = polarToCartesian(item.angle, 120);
+              return <line key={`${item.key}-axis`} x1="180" y1="180" x2={end.x} y2={end.y} stroke="#eee8f2" strokeWidth="1" />;
+            })}
+            <polygon className="radar-polygon" fill="rgba(126, 61, 94, 0.18)" stroke="#8a3b65" strokeWidth="2.4" points={polygonString(scorePoints)} />
             {scorePoints.map((point, index) => (
               <circle key={RADAR_LABELS[index].key} cx={point.x} cy={point.y} r="4" fill="#7E3D5E" />
             ))}
             {RADAR_LABELS.map((item) => {
-              const labelPoint = polarToCartesian(item.angle, 138);
+              const labelPoint = polarToCartesian(item.angle, 148);
               const anchor = item.angle > 90 || item.angle < -90 ? "end" : item.angle === -90 ? "middle" : "start";
               return (
-                <text className="radar-label" key={item.key} textAnchor={anchor} x={labelPoint.x} y={labelPoint.y}>
+                <text className="radar-label" key={item.key} fill="#46536d" fontSize="12" fontWeight="700" textAnchor={anchor} dominantBaseline="middle" x={labelPoint.x} y={labelPoint.y}>
                   {item.label}
                 </text>
               );

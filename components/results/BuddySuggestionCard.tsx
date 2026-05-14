@@ -22,9 +22,13 @@ export function BuddySuggestionCard({ buddy }: { buddy: BuddySuggestion }) {
       </div>
       <p className="buddy-tagline">{buddy.tagline}</p>
       <div className="buddy-common">
-        {buddy.interests.map((interest) => (
-          <span className="chip" key={`${buddy.id}-${interest}`}>{interest}</span>
-        ))}
+        {buddy.interests.length > 0 ? (
+          buddy.interests.map((interest) => (
+            <span className="chip" key={`${buddy.id}-${interest}`}>{interest}</span>
+          ))
+        ) : (
+          <span className="chip chip-muted">Aucun hobby commun</span>
+        )}
       </div>
       <div className="buddy-action">
         <button className="btn btn-primary" type="button">Envoyer une demande</button>

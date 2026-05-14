@@ -234,35 +234,37 @@ export default function ResultsPage() {
 
     return (
       <div className="connected-results">
-        <ResultsHero mbtiCode={result.mbti_code} mbtiName={result.mbti_name} explanation={`« ${explanation} »`} ctaLabel="📥 Partager mon profil" />
-        <div className="results-body">
-          <MBTIAxes axes={axes} />
-          <BigFiveRadar scores={result.big_five_scores} />
+        <div className="results-container">
+          <ResultsHero mbtiCode={result.mbti_code} mbtiName={result.mbti_name} explanation={`« ${explanation} »`} ctaLabel="📥 Partager mon profil" />
+          <div className="results-body">
+            <MBTIAxes axes={axes} />
+            <BigFiveRadar scores={result.big_five_scores} />
 
-          <section className="results-section">
-            <div className="results-section-title">Comment tu fonctionnes</div>
-            <div className="gauges-grid">
-              <GaugeCard label="Niveau de stress" value={result.stress_score} status={stress.label} tone={stress.tone} scale={["Faible", "Modere", "Eleve"]} description={stress.description} />
-              <GaugeCard label="Style d'organisation" value={result.balance_score} status={balance.label} tone={balance.tone} scale={["Spontane", "Equilibre", "Organise"]} description={balance.description} />
-            </div>
-          </section>
-
-          <section className="results-section">
-            <div className="results-section-title">Tes 3 buddies suggere.es</div>
-            {buddies.length === 0 ? (
-              <div className="empty-inline">Aucun buddy visible trouve pour le moment.</div>
-            ) : (
-              <div className="buddies-grid">
-                {buddies.map((buddy) => (
-                  <BuddySuggestionCard buddy={buddy} key={buddy.id} />
-                ))}
+            <section className="results-section">
+              <div className="results-section-title">Comment tu fonctionnes</div>
+              <div className="gauges-grid">
+                <GaugeCard label="Niveau de stress" value={result.stress_score} status={stress.label} tone={stress.tone} scale={["Faible", "Modere", "Eleve"]} description={stress.description} />
+                <GaugeCard label="Style d'organisation" value={result.balance_score} status={balance.label} tone={balance.tone} scale={["Spontane", "Equilibre", "Organise"]} description={balance.description} />
               </div>
-            )}
-          </section>
+            </section>
 
-          <div className="results-footer">
-            <button className="btn btn-primary" type="button">📥 Telecharger mes resultats (PDF)</button>
-            <Link className="btn btn-outline" href="/dashboard">Explorer mon dashboard →</Link>
+            <section className="results-section">
+              <div className="results-section-title">Tes 3 buddies suggere.es</div>
+              {buddies.length === 0 ? (
+                <div className="empty-inline">Aucun buddy visible trouve pour le moment.</div>
+              ) : (
+                <div className="buddies-grid">
+                  {buddies.map((buddy) => (
+                    <BuddySuggestionCard buddy={buddy} key={buddy.id} />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <div className="results-footer">
+              <button className="btn btn-primary" type="button">📥 Telecharger mes resultats (PDF)</button>
+              <Link className="btn btn-outline" href="/dashboard">Explorer mon dashboard →</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -274,16 +276,20 @@ export default function ResultsPage() {
       {content}
       <style jsx>{`
         .connected-results {
-          margin: -28px -28px 0;
+          margin: 0;
+          padding: 0 0 52px;
           background: #fffcfe;
           min-height: 100vh;
         }
-        .results-body {
+        .results-container {
           max-width: 1120px;
           margin: 0 auto;
-          padding: 46px 0 56px;
+          padding-top: 0;
+        }
+        .results-body {
+          padding: 46px 0 0;
           display: grid;
-          gap: 36px;
+          gap: 38px;
         }
         :global(.results-hero) {
           min-height: 505px;
@@ -293,9 +299,11 @@ export default function ResultsPage() {
           justify-content: center;
           text-align: center;
           color: #fff;
-          border-radius: 0;
+          border-radius: 18px;
           padding: 56px 24px;
           background: linear-gradient(126deg, #90446d 0%, #8e7895 54%, #2d99c8 100%);
+          box-shadow: none;
+          overflow: hidden;
         }
         :global(.results-hero-head) {
           display: grid;
@@ -339,6 +347,7 @@ export default function ResultsPage() {
           padding: 13px 28px;
           font-weight: 800;
           box-shadow: 0 14px 28px rgba(39, 34, 64, 0.2);
+          min-height: 43px;
         }
         :global(.results-section) {
           background: transparent;
@@ -414,9 +423,12 @@ export default function ResultsPage() {
           min-height: 340px;
           display: grid;
           place-items: center;
+          padding: 22px;
+          overflow: hidden;
         }
         :global(.radar-svg) {
-          width: min(330px, 100%);
+          width: min(360px, 100%);
+          max-height: 300px;
         }
         :global(.forces-card) {
           padding: 24px;
@@ -525,12 +537,15 @@ export default function ResultsPage() {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 16px;
+          align-items: stretch;
         }
         :global(.buddy-card) {
           position: relative;
           padding: 20px;
           display: grid;
+          grid-template-rows: auto minmax(42px, auto) auto auto;
           gap: 16px;
+          min-width: 0;
         }
         :global(.buddy-compat) {
           position: absolute;
@@ -564,6 +579,7 @@ export default function ResultsPage() {
           margin: 0;
           color: #07123a;
           font-size: 19px;
+          overflow-wrap: anywhere;
         }
         :global(.buddy-meta) {
           color: #65738f;
@@ -582,6 +598,7 @@ export default function ResultsPage() {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
+          align-content: flex-start;
         }
         :global(.chip) {
           border-radius: 999px;
@@ -590,11 +607,16 @@ export default function ResultsPage() {
           padding: 5px 10px;
           font-size: 13px;
         }
+        :global(.chip-muted) {
+          color: #69738a;
+          background: #f6f3f8;
+        }
         :global(.buddy-action .btn) {
           width: 100%;
           min-height: 42px;
           border-radius: 10px;
           background: #8a3b65;
+          margin-top: auto;
         }
         .empty-inline,
         .state-card {
@@ -632,10 +654,7 @@ export default function ResultsPage() {
         }
         @media (max-width: 1050px) {
           .connected-results {
-            margin: -20px -20px 0;
-          }
-          .results-body {
-            padding-inline: 18px;
+            padding-bottom: 44px;
           }
           :global(.axes-grid),
           :global(.big-five-grid),
@@ -648,6 +667,7 @@ export default function ResultsPage() {
           :global(.results-hero) {
             min-height: 430px;
             padding-inline: 16px;
+            border-radius: 16px;
           }
           :global(.results-code) {
             font-size: 4.2rem;
