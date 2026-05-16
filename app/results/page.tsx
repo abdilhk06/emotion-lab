@@ -4,36 +4,20 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/app-layout/AppLayout";
-import { BigFiveRadar } from "@/components/results/BigFiveRadar";
-import { BuddySuggestionCard, type BuddySuggestion } from "@/components/results/BuddySuggestionCard";
-import { GaugeCard } from "@/components/results/GaugeCard";
-import { MBTIAxes, type MBTIAxisItem } from "@/components/results/MBTIAxes";
 import type { BigFiveScores } from "@/lib/calculate-result";
-import { computeBuddyCompatibilityScore } from "@/lib/compatibility";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
 type ProfileRow = {
   id: string;
-  pseudo: string | null;
-  bio: string | null;
-  looking_for: string | null;
-  study_level: string | null;
-  is_visible: boolean | null;
 };
 
 type ResultRow = {
-  user_id: string;
   mbti_code: string | null;
   mbti_name: string | null;
   big_five_scores: BigFiveScores | null;
   stress_score: number | null;
   balance_score: number | null;
   created_at: string;
-};
-
-type HobbyRow = {
-  user_id: string;
-  hobby: string;
 };
 
 type StoredResult = {
@@ -50,15 +34,19 @@ type ResultsState =
   | { status: "error"; message: string }
   | { status: "no-profile" }
   | { status: "no-result" }
-  | { status: "ready"; profile: ProfileRow; result: StoredResult; hobbies: string[]; buddies: BuddySuggestion[] };
+  | { status: "ready"; result: StoredResult };
 
-const MBTI_EXPLANATIONS: Record<string, string> = {
-  ENFJ: "Tu inspires les gens autour de toi par ta chaleur et ton sens de l'autre.",
-  INFJ: "Tu relies intuition, profondeur et attention fine aux autres.",
-  ENFP: "Tu apportes energie, creativite et curiosite dans ce que tu entreprends.",
-  INFP: "Tu avances avec authenticite, sensibilite et recherche de sens.",
-  ENTJ: "Tu structures vite les idees et tu mobilises les autres vers l'action.",
-  INTJ: "Tu combines vision, autonomie et rigueur pour construire sur la duree.",
+type CardTone = "plum" | "blue" | "orange" | "green";
+
+type ResultCard = {
+  title: string;
+  value: number;
+  description?: string;
+  tone?: CardTone;
+  pill?: {
+    label: string;
+    tone: "orange" | "green";
+  };
 };
 
 function clamp(value: number | null | undefined): number {
@@ -69,87 +57,89 @@ function hasScores(scores: BigFiveScores | null): scores is BigFiveScores {
   return Boolean(scores) && ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"].every((key) => typeof scores?.[key as keyof BigFiveScores] === "number");
 }
 
-function mbtiAxesFromScores(code: string, scores: BigFiveScores): MBTIAxisItem[] {
-  const letters = code.padEnd(4, "X").slice(0, 4).split("");
-  const axes: MBTIAxisItem[] = [
-    { leftLabel: "E — Extraversion", rightLabel: "Introversion — I", activeSide: letters[0] === "E" ? "left" : "right", value: letters[0] === "E" ? scores.extraversion : 100 - scores.extraversion },
-    { leftLabel: "Sensation — S", rightLabel: "iNtuition — N", activeSide: letters[1] === "S" ? "left" : "right", value: letters[1] === "S" ? 100 - scores.openness : scores.openness },
-    { leftLabel: "Logique — T", rightLabel: "Affect — F", activeSide: letters[2] === "T" ? "left" : "right", value: letters[2] === "T" ? 100 - scores.agreeableness : scores.agreeableness },
-    { leftLabel: "J — Structure", rightLabel: "Flexibilite — P", activeSide: letters[3] === "J" ? "left" : "right", value: letters[3] === "J" ? scores.conscientiousness : 100 - scores.conscientiousness },
-  ];
-  return axes.map((axis) => ({ ...axis, value: clamp(axis.value) }));
-}
-
-function statusForStress(value: number) {
-  if (value < 35) return { label: "Faible", tone: "low" as const, description: "Tu sembles globalement bien gerer la pression actuelle." };
-  if (value < 70) return { label: "Modéré", tone: "moderate" as const, description: "Tu traverses une periode intense. Notre chatbot et un.e Buddy empathique peuvent t'aider." };
-  return { label: "Élevé", tone: "high" as const, description: "Ton niveau de pression merite de vrais temps de recuperation et du soutien." };
-}
-
-function statusForBalance(value: number) {
-  if (value < 40) return { label: "Spontane", tone: "moderate" as const, description: "Tu privilegies l'adaptation rapide. Un cadre leger peut t'aider a stabiliser tes priorites." };
-  if (value < 75) return { label: "Équilibré", tone: "balanced" as const, description: "Tu as un bon equilibre entre rigueur et souplesse. La matrice d'Eisenhower pourrait encore t'aider." };
-  return { label: "Organisé", tone: "balanced" as const, description: "Tu fonctionnes bien avec des routines claires et un cadre visible." };
-}
-
-function initialFor(profile: ProfileRow): string {
-  return (profile.pseudo?.trim().replace(/^@/, "").charAt(0) || "?").toUpperCase();
-}
-
 function formatResultDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "date non disponible";
   return new Intl.DateTimeFormat("fr-FR", {
     day: "2-digit",
     month: "long",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 }
 
-function buildBuddies(params: {
-  userId: string;
-  profile: ProfileRow;
-  result: StoredResult;
-  profiles: ProfileRow[];
-  results: ResultRow[];
-  hobbies: HobbyRow[];
-}): BuddySuggestion[] {
-  const latestResultByUser = new Map<string, ResultRow>();
-  for (const row of params.results) {
-    if (!latestResultByUser.has(row.user_id)) latestResultByUser.set(row.user_id, row);
+function stressStatus(value: number) {
+  if (value < 35) return { label: "Faible", description: "Tu sembles globalement bien gerer la pression actuelle." };
+  if (value < 70) return { label: "Modéré", description: "Tu traverses une periode intense. Garde des temps de recuperation visibles." };
+  return { label: "Élevé", description: "Ton niveau de pression merite du soutien et de vrais temps de pause." };
+}
+
+function organizationStatus(value: number) {
+  if (value < 40) return { label: "Spontanée", description: "Tu privilegies l'adaptation rapide. Un cadre leger peut aider." };
+  if (value < 75) return { label: "Équilibrée", description: "Bon equilibre entre methode et souplesse." };
+  return { label: "Organisée", description: "Tu fonctionnes bien avec des routines claires et un cadre visible." };
+}
+
+function scoreDescription(title: string, value: number): string {
+  if (title === "Agréabilité") {
+    if (value >= 75) return "Super-pouvoir relationnel. Les autres se confient facilement a toi.";
+    if (value >= 45) return "Tu sais cooperer tout en gardant tes limites.";
+    return "Tu privilegies la franchise et l'autonomie dans tes relations.";
   }
-
-  const hobbiesByUser = new Map<string, Set<string>>();
-  for (const row of params.hobbies) {
-    const set = hobbiesByUser.get(row.user_id) ?? new Set<string>();
-    set.add(row.hobby);
-    hobbiesByUser.set(row.user_id, set);
+  if (title === "Extraversion") {
+    if (value >= 75) return "Tu es energise par les interactions.";
+    if (value >= 45) return "Tu alternes bien entre lien social et temps calme.";
+    return "Tu recuperes surtout dans les moments calmes ou en petit comite.";
   }
+  if (title === "Ouverture") {
+    if (value >= 75) return "Tu aimes explorer les nouvelles idees.";
+    if (value >= 45) return "Tu combines curiosite et pragmatisme.";
+    return "Tu preferes les reperes clairs et les approches deja eprouvees.";
+  }
+  if (value >= 75) return "Tu avances avec structure, priorites et regularite.";
+  if (value >= 45) return "Bon equilibre methode / souplesse.";
+  return "Tu gagnes a poser quelques reperes simples avant d'avancer.";
+}
 
-  const myHobbies = hobbiesByUser.get(params.userId) ?? new Set<string>();
-  return params.profiles
-    .filter((profile) => profile.id !== params.userId && profile.is_visible !== false)
-    .map((profile) => {
-      const buddyResult = latestResultByUser.get(profile.id);
-      const sharedHobbies = Array.from(hobbiesByUser.get(profile.id) ?? []).filter((hobby) => myHobbies.has(hobby));
-      const compatibility = computeBuddyCompatibilityScore({
-        sharedHobbiesCount: sharedHobbies.length,
-        currentMbti: params.result.mbti_code,
-        buddyMbti: buddyResult?.mbti_code,
-        sameStudyLevel: Boolean(params.profile.study_level && profile.study_level && params.profile.study_level === profile.study_level),
-      });
-
-      return {
-        id: profile.id,
-        handle: profile.pseudo?.trim() || "@buddy",
-        initials: initialFor(profile),
-        mbti: buddyResult?.mbti_code?.trim() || "MBTI non renseigne",
-        level: profile.study_level?.trim() || "Niveau non precise",
-        tagline: profile.looking_for?.trim() || profile.bio?.trim() || "Profil visible, bio a completer.",
-        interests: sharedHobbies,
-        compatibility,
-      };
-    })
-    .sort((a, b) => b.compatibility - a.compatibility || a.handle.localeCompare(b.handle, "fr"))
-    .slice(0, 3);
+function buildCards(result: StoredResult): ResultCard[] {
+  const stress = stressStatus(result.stress_score);
+  const organization = organizationStatus(result.balance_score);
+  return [
+    {
+      title: "Agréabilité",
+      value: result.big_five_scores.agreeableness,
+      description: scoreDescription("Agréabilité", result.big_five_scores.agreeableness),
+    },
+    {
+      title: "Extraversion",
+      value: result.big_five_scores.extraversion,
+      description: scoreDescription("Extraversion", result.big_five_scores.extraversion),
+    },
+    {
+      title: "Ouverture",
+      value: result.big_five_scores.openness,
+      description: scoreDescription("Ouverture", result.big_five_scores.openness),
+    },
+    {
+      title: "Consciencieusité",
+      value: result.big_five_scores.conscientiousness,
+      description: scoreDescription("Consciencieusité", result.big_five_scores.conscientiousness),
+      tone: "blue",
+    },
+    {
+      title: "Ton niveau de stress",
+      value: result.stress_score,
+      description: stress.description,
+      tone: "orange",
+      pill: { label: stress.label, tone: "orange" },
+    },
+    {
+      title: "Style d'organisation",
+      value: result.balance_score,
+      description: organization.description,
+      tone: "green",
+      pill: { label: organization.label, tone: "green" },
+    },
+  ];
 }
 
 export default function ResultsPage() {
@@ -169,15 +159,18 @@ export default function ResultsPage() {
           return;
         }
 
-        const [profileRes, latestResultRes, profilesRes, resultsRes, hobbiesRes] = await Promise.all([
-          supabase.from("profiles").select("id, pseudo, bio, looking_for, study_level, is_visible").eq("id", user.id).maybeSingle<ProfileRow>(),
-          supabase.from("test_results").select("user_id, mbti_code, mbti_name, big_five_scores, stress_score, balance_score, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle<ResultRow>(),
-          supabase.from("profiles").select("id, pseudo, bio, looking_for, study_level, is_visible").eq("is_visible", true).returns<ProfileRow[]>(),
-          supabase.from("test_results").select("user_id, mbti_code, mbti_name, big_five_scores, stress_score, balance_score, created_at").order("created_at", { ascending: false }).returns<ResultRow[]>(),
-          supabase.from("user_hobbies").select("user_id, hobby").returns<HobbyRow[]>(),
+        const [profileRes, latestResultRes] = await Promise.all([
+          supabase.from("profiles").select("id").eq("id", user.id).maybeSingle<ProfileRow>(),
+          supabase
+            .from("test_results")
+            .select("mbti_code, mbti_name, big_five_scores, stress_score, balance_score, created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle<ResultRow>(),
         ]);
 
-        const firstError = profileRes.error ?? latestResultRes.error ?? profilesRes.error ?? resultsRes.error ?? hobbiesRes.error;
+        const firstError = profileRes.error ?? latestResultRes.error;
         if (firstError) {
           setState({ status: "error", message: firstError.message });
           return;
@@ -194,31 +187,23 @@ export default function ResultsPage() {
           return;
         }
 
-        const result: StoredResult = {
-          mbti_code: row.mbti_code,
-          mbti_name: row.mbti_name,
-          big_five_scores: {
-            openness: clamp(row.big_five_scores.openness),
-            conscientiousness: clamp(row.big_five_scores.conscientiousness),
-            extraversion: clamp(row.big_five_scores.extraversion),
-            agreeableness: clamp(row.big_five_scores.agreeableness),
-            neuroticism: clamp(row.big_five_scores.neuroticism),
+        setState({
+          status: "ready",
+          result: {
+            mbti_code: row.mbti_code,
+            mbti_name: row.mbti_name,
+            big_five_scores: {
+              openness: clamp(row.big_five_scores.openness),
+              conscientiousness: clamp(row.big_five_scores.conscientiousness),
+              extraversion: clamp(row.big_five_scores.extraversion),
+              agreeableness: clamp(row.big_five_scores.agreeableness),
+              neuroticism: clamp(row.big_five_scores.neuroticism),
+            },
+            stress_score: clamp(row.stress_score),
+            balance_score: clamp(row.balance_score),
+            created_at: row.created_at,
           },
-          stress_score: clamp(row.stress_score),
-          balance_score: clamp(row.balance_score),
-          created_at: row.created_at,
-        };
-        const hobbies = (hobbiesRes.data ?? []).filter((item) => item.user_id === user.id).map((item) => item.hobby);
-        const buddies = buildBuddies({
-          userId: user.id,
-          profile: profileRes.data,
-          result,
-          profiles: profilesRes.data ?? [],
-          results: resultsRes.data ?? [],
-          hobbies: hobbiesRes.data ?? [],
         });
-
-        setState({ status: "ready", profile: profileRes.data, result, hobbies, buddies });
       } catch (error) {
         setState({ status: "error", message: error instanceof Error ? error.message : "Impossible de charger tes resultats." });
       }
@@ -228,86 +213,62 @@ export default function ResultsPage() {
   }, [router]);
 
   const content = useMemo(() => {
-    if (state.status === "loading") return <StateCard title="Chargement de tes resultats..." text="On recupere ton profil, ton dernier test et tes suggestions Buddy." />;
+    if (state.status === "loading") return <StateCard title="Chargement de tes resultats..." text="On recupere ton profil et ton dernier test sauvegarde." />;
     if (state.status === "error") return <StateCard title="Impossible d'afficher tes resultats" text={state.message} error />;
     if (state.status === "no-profile") return <StateCard title="Profil introuvable" text="Complete ton profil pour afficher tes resultats connectes." primaryHref="/profile" primaryLabel="Completer mon profil" />;
     if (state.status === "no-result") return <StateCard title="Aucun test complete" text="Passe le test pour generer ton profil Emotion Lab." primaryHref="/test/intro" primaryLabel="Demarrer le test" />;
 
-    const { result, buddies } = state;
-    const axes = mbtiAxesFromScores(result.mbti_code, result.big_five_scores);
-    const stress = statusForStress(result.stress_score);
-    const balance = statusForBalance(result.balance_score);
-    const explanation = MBTI_EXPLANATIONS[result.mbti_code] ?? "Ton profil montre ta maniere naturelle d'entrer en relation, de t'organiser et de recuperer.";
+    const { result } = state;
+    const cards = buildCards(result);
+    const dateLabel = formatResultDate(result.created_at);
 
     return (
-      <div className="connected-results">
-        <div className="results-container">
-          <header className="connected-results-header">
-            <div>
-              <p className="connected-eyebrow">Profil Emotion Lab</p>
-              <h1>Mes résultats</h1>
-            </div>
-            <div className="results-tabs" aria-label="Vue des résultats">
-              <button className="results-tab active" type="button" aria-pressed="true">
-                Actuel
-              </button>
-              <button className="results-tab" type="button" aria-pressed="false">
-                Historique (1)
-              </button>
-            </div>
-          </header>
+      <main className="compact-results-page">
+        <h1>Mes résultats</h1>
 
-          <section className="connected-summary-card">
-            <div className="summary-content">
-              <p className="summary-kicker">Profil actuel</p>
-              <div className="summary-code">{result.mbti_code}</div>
-              <h2>{result.mbti_name}</h2>
-              <p className="summary-text">« {explanation} »</p>
-              <p className="summary-date">Dernier résultat : {formatResultDate(result.created_at)}</p>
-            </div>
-            <button className="summary-pdf" type="button">
-              Télécharger mes résultats (PDF)
-            </button>
-          </section>
-
-          <div className="results-body">
-            <section className="results-section">
-              <div className="results-section-title">Tes 4 dimensions</div>
-              <MBTIAxes axes={axes} title={null} />
-            </section>
-            <section className="results-section">
-              <div className="results-section-title">Tes super-pouvoirs</div>
-              <BigFiveRadar scores={result.big_five_scores} title={null} />
-            </section>
-
-            <section className="results-section function-section">
-              <div className="results-section-title">COMMENT TU FONCTIONNES</div>
-              <div className="gauges-grid">
-                <GaugeCard label="Niveau de stress" value={result.stress_score} status={stress.label} tone={stress.tone} scale={["Faible", "Modéré", "Élevé"]} description={stress.description} />
-                <GaugeCard label="Style d'organisation" value={result.balance_score} status={balance.label} tone={balance.tone} scale={["Spontané", "Équilibré", "Organisé"]} description={balance.description} />
-              </div>
-            </section>
-
-            <section className="results-section buddies-section">
-              <div className="results-section-title">TES 3 BUDDIES SUGGÉRÉ·ES</div>
-              {buddies.length === 0 ? (
-                <div className="empty-inline">Aucun buddy visible trouve pour le moment.</div>
-              ) : (
-                <div className="buddies-grid">
-                  {buddies.map((buddy) => (
-                    <BuddySuggestionCard buddy={buddy} key={buddy.id} />
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <div className="results-footer">
-              <button className="btn btn-pdf" type="button">📥 Télécharger mes résultats (PDF)</button>
-              <Link className="btn btn-outline" href="/dashboard">Explorer mon dashboard →</Link>
-            </div>
-          </div>
+        <div className="compact-tabs" aria-label="Vue des résultats">
+          <button className="compact-tab active" type="button" aria-pressed="true">
+            Actuel
+          </button>
+          <button className="compact-tab" type="button" aria-pressed="false">
+            Historique (1)
+          </button>
         </div>
-      </div>
+
+        <section className="hero-card" aria-label="Profil MBTI actuel">
+          <div className="hero-info">
+            <h2>{result.mbti_code}</h2>
+            <h3>{result.mbti_name}</h3>
+            <p>Passé le {dateLabel}</p>
+          </div>
+          <button className="pdf-small" type="button">
+            PDF
+          </button>
+        </section>
+
+        <section className="cards-grid" aria-label="Scores principaux">
+          {cards.map((card) => (
+            <article className="result-card" key={card.title}>
+              <h3>{card.title}</h3>
+              <div className="score-row">
+                <span className={`score ${card.tone ?? ""}`}>{card.value}</span>
+                <span className="out-of">/100</span>
+                {card.pill ? <span className={`pill ${card.pill.tone}`}>{card.pill.label}</span> : null}
+              </div>
+              {card.description ? <p>{card.description}</p> : null}
+            </article>
+          ))}
+        </section>
+
+        <div className="actions">
+          <button className="btn btn-primary" type="button">
+            Télécharger en PDF
+          </button>
+          <Link className="btn btn-outline" href="/test/intro">
+            Repasser le test
+          </Link>
+        </div>
+      </main>
     );
   }, [state]);
 
@@ -315,425 +276,211 @@ export default function ResultsPage() {
     <AppLayout title="Mes resultats">
       {content}
       <style jsx>{`
-        .connected-results {
-          margin: 0;
-          padding: 0 0 52px;
-          background: #fffdfd;
-          min-height: 100vh;
-        }
-        .results-container {
-          max-width: 1120px;
+        .compact-results-page {
+          --plum: #7e3d5e;
+          --blue: #2e8bbf;
+          --dark: #071238;
+          --text: #102044;
+          --muted: #52627a;
+          --border: #e8dff0;
+          --bg: #fffcff;
+          --card: #ffffff;
+          --orange: #f28a33;
+          --green: #43c181;
+          --shadow: 0 8px 20px rgba(18, 20, 40, 0.08);
+          --gradient: linear-gradient(135deg, #8b4d73 0%, #7d7898 55%, #4aa0d0 100%);
+          width: 100%;
+          max-width: 1020px;
           margin: 0 auto;
-          padding-top: 0;
+          padding: 22px 16px 80px;
+          background: var(--bg);
+          color: var(--text);
         }
-        .connected-results-header {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 18px;
-          margin-bottom: 22px;
-        }
-        .connected-eyebrow {
-          margin: 0 0 6px;
-          color: #697796;
-          font-size: 13px;
+        .compact-results-page h1 {
+          margin: 0 0 22px;
+          color: var(--dark);
+          font-size: 36px;
           font-weight: 800;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-        }
-        .connected-results-header h1 {
-          margin: 0;
-          color: #07123a;
-          font-size: 32px;
+          letter-spacing: -1px;
           line-height: 1.1;
         }
-        .results-tabs {
+        .compact-tabs {
           display: inline-flex;
-          gap: 4px;
-          border: 1px solid #e4dcea;
-          border-radius: 12px;
-          background: #fff;
+          gap: 6px;
+          margin-bottom: 20px;
           padding: 4px;
+          border-radius: 12px;
+          background: #f4eff8;
         }
-        .results-tab {
+        .compact-tab {
           border: 0;
-          border-radius: 9px;
+          border-radius: 10px;
           background: transparent;
-          color: #59657f;
+          color: var(--text);
           cursor: default;
-          font-weight: 800;
-          min-height: 36px;
-          padding: 0 14px;
-        }
-        .results-tab.active {
-          background: #8a315f;
-          color: #fff;
-        }
-        .connected-summary-card {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          align-items: end;
-          gap: 22px;
-          border-radius: 16px;
-          padding: 26px;
-          color: #fff;
-          background: linear-gradient(126deg, #90446d 0%, #8e7895 56%, #2d99c8 100%);
-        }
-        .summary-kicker {
-          margin: 0 0 10px;
-          color: rgba(255, 255, 255, 0.78);
           font-size: 13px;
-          font-weight: 800;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-        }
-        .summary-code {
-          font-size: 54px;
-          font-weight: 900;
-          line-height: 0.95;
-        }
-        .summary-content h2 {
-          margin: 8px 0 0;
-          font-size: 24px;
-          line-height: 1.15;
-        }
-        .summary-text {
-          max-width: 620px;
-          margin: 12px 0 0;
-          color: rgba(255, 255, 255, 0.9);
           font-weight: 600;
-          line-height: 1.45;
+          padding: 11px 16px;
         }
-        .summary-date {
-          margin: 14px 0 0;
-          color: rgba(255, 255, 255, 0.78);
+        .compact-tab.active {
+          background: #ffffff;
+          color: var(--plum);
+          box-shadow: 0 2px 8px rgba(126, 61, 94, 0.08);
+        }
+        .hero-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          min-height: 156px;
+          margin-bottom: 24px;
+          padding: 28px 24px;
+          border-radius: 20px;
+          color: #ffffff;
+          background: var(--gradient);
+        }
+        .hero-info h2 {
+          margin: 0 0 6px;
+          color: #ffffff;
+          font-size: 48px;
+          font-weight: 800;
+          letter-spacing: -1px;
+          line-height: 1;
+        }
+        .hero-info h3 {
+          margin: 0 0 12px;
+          color: #ffffff;
+          font-size: 18px;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+        .hero-info p {
+          margin: 0;
+          color: rgba(255, 255, 255, 0.92);
+          font-size: 12px;
+        }
+        .pdf-small {
+          width: 68px;
+          height: 44px;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          border-radius: 11px;
+          background: rgba(255, 255, 255, 0.14);
+          color: #ffffff;
+          cursor: pointer;
           font-size: 13px;
           font-weight: 700;
         }
-        .summary-pdf {
-          border: 0;
-          border-radius: 10px;
-          background: #fff;
-          color: #89406a;
-          min-height: 44px;
-          padding: 0 18px;
-          font-weight: 900;
-          white-space: nowrap;
-        }
-        .results-body {
-          padding: 30px 0 0;
-          display: grid;
-          gap: 40px;
-        }
-        :global(.results-section) {
-          background: transparent;
-          border: 0;
-          padding: 0;
-        }
-        :global(.results-section-title) {
-          margin: 0 0 18px;
-          color: #8a315f;
-          font-size: 14px;
-          font-weight: 900;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-        }
-        :global(.axes-grid) {
+        .cards-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
-          width: 100%;
+          gap: 18px;
         }
-        :global(.axe-row),
-        :global(.radar-card),
-        :global(.forces-card),
-        :global(.gauge-card),
-        :global(.buddy-card) {
-          background: #fff;
-          border: 1px solid #e4dcea;
-          border-radius: 14px;
-          box-shadow: none;
-          min-width: 0;
-        }
-        :global(.axe-row) {
-          min-height: 84px;
-          padding: 19px 20px;
-          display: grid;
-          gap: 12px;
-          align-content: center;
-        }
-        :global(.axe-header) {
+        .result-card {
           display: flex;
-          justify-content: space-between;
-          color: #26365a;
-          font-weight: 800;
-          font-size: 14px;
+          flex-direction: column;
+          justify-content: flex-start;
+          min-height: 158px;
+          padding: 21px 22px;
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          background: var(--card);
+          box-shadow: var(--shadow);
         }
-        :global(.axe-letter.active) {
-          color: #8a315f;
-          font-size: 16px;
+        .result-card h3 {
+          margin: 0 0 18px;
+          color: #050b2d;
+          font-size: 19px;
+          font-weight: 700;
         }
-        :global(.axe-track) {
-          height: 8px;
-          border-radius: 999px;
-          background: #e8e1ec;
-        }
-        :global(.axe-fill) {
-          height: 100%;
-          position: relative;
-          border-radius: 999px;
-          background: linear-gradient(90deg, #8a3b65, #2894c2);
-        }
-        :global(.axe-dot) {
-          position: absolute;
-          left: -8px;
-          top: -4px;
-          width: 16px;
-          height: 16px;
-          border: 3px solid #8a3b65;
-          background: #fff;
-          border-radius: 999px;
-        }
-        :global(.big-five-grid) {
-          display: grid;
-          grid-template-columns: 1.25fr 1fr;
-          gap: 16px;
-          width: 100%;
-        }
-        :global(.radar-card) {
-          min-height: 340px;
-          display: grid;
-          place-items: center;
-          padding: 22px;
-          overflow: hidden;
-        }
-        :global(.radar-svg) {
-          width: min(360px, 100%);
-          max-height: 300px;
-        }
-        :global(.forces-card) {
-          padding: 24px;
-          background: #f4eff7;
-        }
-        :global(.forces-card h3) {
-          margin: 0 0 22px;
-          color: #8a315f;
-          font-size: 24px;
-        }
-        :global(.force-item) {
-          display: grid;
-          grid-template-columns: 38px 1fr;
-          gap: 12px;
-          padding: 10px 0;
-          border-bottom: 1px dashed #ded2e5;
-        }
-        :global(.force-item:last-child) {
-          border-bottom: 0;
-        }
-        :global(.force-icon) {
-          width: 38px;
-          height: 38px;
-          display: grid;
-          place-items: center;
-          border-radius: 10px;
-          background: #fff;
-          color: #8a315f;
-          font-weight: 900;
-          font-size: 20px;
-        }
-        :global(.force-content h4) {
-          margin: 0 0 4px;
-          font-size: 16px;
-          color: #07123a;
-        }
-        :global(.force-content p) {
-          margin: 0;
-          color: #24375e;
-          line-height: 1.45;
-        }
-        :global(.gauges-grid) {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
-          width: 100%;
-          align-items: stretch;
-        }
-        :global(.gauge-card) {
-          width: auto;
+        .score-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 16px;
           min-width: 0;
-          min-height: 220px;
-          padding: 26px;
         }
-        :global(.gauge-label) {
-          color: #26365a;
-          font-size: 15px;
-        }
-        :global(.gauge-main) {
-          margin-top: 8px;
-        }
-        :global(.gauge-value) {
-          font-size: 38px;
-          font-weight: 900;
+        .score {
+          color: var(--plum);
+          font-size: 34px;
+          font-weight: 800;
+          letter-spacing: -1px;
           line-height: 1;
         }
-        :global(.gauge-value span) {
-          color: #66738e;
-          font-size: 20px;
+        .score.blue {
+          color: var(--blue);
         }
-        :global(.gauge-status) {
-          margin-top: 6px;
+        .score.orange {
+          color: var(--orange);
+        }
+        .score.green {
+          color: var(--green);
+        }
+        .out-of {
+          align-self: flex-end;
+          margin-left: -8px;
+          padding-bottom: 2px;
+          color: #637593;
           font-size: 14px;
-          font-weight: 900;
+          font-weight: 800;
         }
-        :global(.gauge-value-modere),
-        :global(.gauge-status.modere) {
-          color: #f07f2f;
-        }
-        :global(.gauge-value-equilibre),
-        :global(.gauge-status.equilibre) {
-          color: #35ba72;
-        }
-        :global(.gauge-value-eleve),
-        :global(.gauge-status.eleve) {
-          color: #e53e3e;
-        }
-        :global(.gauge-value-faible),
-        :global(.gauge-status.faible) {
-          color: #35ba72;
-        }
-        :global(.gauge-track) {
-          height: 10px;
-          margin-top: 15px;
-          border-radius: 999px;
-          background: #e7e1eb;
-        }
-        :global(.gauge-fill) {
-          height: 100%;
-          border-radius: 999px;
-        }
-        :global(.gauge-fill.modere) {
-          background: linear-gradient(90deg, #6fc88e, #f07f2f);
-        }
-        :global(.gauge-fill.equilibre) {
-          background: linear-gradient(90deg, #6fc8b2, #35ba72);
-        }
-        :global(.gauge-fill.eleve) {
-          background: linear-gradient(90deg, #f07f2f, #e53e3e);
-        }
-        :global(.gauge-fill.faible) {
-          background: linear-gradient(90deg, #6fc8b2, #35ba72);
-        }
-        :global(.gauge-scale) {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 8px;
-          color: #697796;
-          font-size: 11px;
-        }
-        :global(.gauge-card p) {
-          color: #24375e;
-          line-height: 1.55;
-        }
-        :global(.buddies-grid) {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 16px;
-          align-items: stretch;
-          width: 100%;
-        }
-        :global(.buddy-card) {
-          position: relative;
-          width: auto !important;
-          max-width: none !important;
-          padding: 20px;
-          display: grid;
-          grid-template-rows: auto minmax(42px, auto) auto auto;
-          gap: 16px;
-          min-width: 0;
-          min-height: 256px;
-        }
-        :global(.buddy-compat) {
-          position: absolute;
-          right: 16px;
-          top: 16px;
-          border-radius: 999px;
-          padding: 5px 10px;
-          color: #35ba72;
-          background: #ebfff0;
-          font-size: 13px;
-          font-weight: 900;
-        }
-        :global(.buddy-header) {
-          display: flex;
-          gap: 14px;
-          align-items: center;
-          padding-right: 52px;
-        }
-        :global(.buddy-avatar) {
-          width: 55px;
-          height: 55px;
-          display: grid;
-          place-items: center;
-          border-radius: 999px;
-          color: #fff;
-          font-size: 21px;
-          font-weight: 900;
-          background: linear-gradient(135deg, #9d4b7a, #2f91bd);
-        }
-        :global(.buddy-info h4) {
+        .result-card p {
           margin: 0;
-          color: #07123a;
-          font-size: 19px;
-          overflow-wrap: anywhere;
-        }
-        :global(.buddy-meta) {
-          color: #65738f;
+          color: #25395e;
           font-size: 13px;
-        }
-        :global(.buddy-tagline) {
-          margin: 0;
-          min-height: 42px;
-          color: #26365a;
-          font-size: 14px;
-          font-style: italic;
           line-height: 1.45;
         }
-        :global(.buddy-common) {
-          min-height: 30px;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          align-content: flex-start;
-        }
-        :global(.chip) {
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          margin-left: 10px;
+          padding: 6px 10px;
           border-radius: 999px;
-          background: #f3edf7;
-          color: #4c5069;
-          padding: 5px 10px;
-          font-size: 13px;
+          font-size: 12px;
+          font-weight: 600;
+          overflow-wrap: anywhere;
         }
-        :global(.chip-muted) {
-          color: #69738a;
-          background: #f6f3f8;
+        .pill.orange {
+          color: var(--orange);
+          background: #fff6ec;
         }
-        :global(.buddy-action .btn) {
-          width: 100%;
-          min-height: 42px;
-          border-radius: 10px;
-          background: #8a3b65;
-          margin-top: auto;
+        .pill.green {
+          color: var(--green);
+          background: #eefff5;
         }
-        .empty-inline,
-        .state-card {
-          background: #fff;
-          border: 1px solid #e4dcea;
-          border-radius: 14px;
-          padding: 22px;
-          color: #26365a;
+        .actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 24px;
+        }
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 44px;
+          border: 1px solid transparent;
+          border-radius: 11px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 700;
+          padding: 0 20px;
+          text-decoration: none;
+        }
+        .btn-primary {
+          background: var(--blue);
+          color: #ffffff;
+        }
+        .btn-outline {
+          border-color: var(--plum);
+          background: #ffffff;
+          color: var(--plum);
         }
         .state-card {
           max-width: 760px;
           margin: 0 auto;
+          padding: 22px;
+          border: 1px solid #e4dcea;
+          border-radius: 14px;
+          background: #ffffff;
+          color: #26365a;
         }
         .state-card.error {
           border-color: #f0c4cb;
@@ -746,65 +493,39 @@ export default function ResultsPage() {
           margin: 0 0 16px;
           color: #59657f;
         }
-        .results-footer {
-          display: flex;
-          justify-content: center;
-          gap: 18px;
-          flex-wrap: wrap;
-          padding-top: 34px;
-        }
-        .results-footer :global(.btn) {
-          min-height: 44px;
-          border-radius: 10px;
-          padding-inline: 20px;
-        }
-        .results-footer :global(.btn-pdf) {
-          border: 1px solid #2f91bd;
-          background: #2f91bd;
-          color: #fff;
-          font-weight: 900;
-        }
-        .results-footer :global(.btn-outline) {
-          background: #fff;
-          color: #8a315f;
-          border: 1px solid #8a315f;
-        }
-        @media (max-width: 780px) {
-          .connected-results {
-            padding-bottom: 44px;
+        @media (max-width: 700px) {
+          .compact-results-page {
+            padding: 24px 15px 60px;
           }
-          .connected-results-header,
-          .connected-summary-card {
+          .compact-results-page h1 {
+            font-size: 34px;
+          }
+          .hero-card {
+            min-height: 150px;
+            padding: 26px 24px;
+          }
+          .hero-info h2 {
+            font-size: 46px;
+          }
+          .cards-grid {
             grid-template-columns: 1fr;
           }
-          .connected-results-header {
-            align-items: stretch;
+          .result-card {
+            min-height: 150px;
           }
-          .results-tabs {
+          .actions {
+            flex-direction: column;
+          }
+          .btn {
             width: 100%;
-          }
-          .results-tab {
-            flex: 1;
-          }
-          .summary-pdf {
-            width: 100%;
-          }
-          :global(.axes-grid),
-          :global(.big-five-grid),
-          :global(.gauges-grid),
-          :global(.buddies-grid) {
-            grid-template-columns: 1fr;
           }
         }
-        @media (max-width: 640px) {
-          .connected-summary-card {
-            padding: 22px;
+        @media (max-width: 430px) {
+          .score-row {
+            flex-wrap: wrap;
           }
-          .summary-code {
-            font-size: 44px;
-          }
-          .results-footer :global(.btn) {
-            width: 100%;
+          .pill {
+            margin-left: 0;
           }
         }
       `}</style>
