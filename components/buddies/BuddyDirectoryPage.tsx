@@ -27,6 +27,15 @@ type HobbyRow = {
   hobby: string;
 };
 
+type BuddyRequestStatus = "none" | "pending" | "accepted" | "rejected";
+
+type BuddyRequestRow = {
+  sender_id: string;
+  receiver_id: string;
+  status: Exclude<BuddyRequestStatus, "none"> | "cancelled";
+  created_at: string;
+};
+
 type BuddyItem = {
   id: string;
   pseudo: string;
@@ -35,6 +44,7 @@ type BuddyItem = {
   mbti: string;
   sharedHobbies: string[];
   compatibility: number;
+  requestStatus: BuddyRequestStatus;
 };
 
 type DirectoryState =
@@ -73,21 +83,32 @@ export function BuddyDirectoryPage() {
           return;
         }
 
-        const [profilesRes, resultsRes, hobbiesRes] = await Promise.all([
+        const [profilesRes, myProfileRes, resultsRes, hobbiesRes, requestsRes] = await Promise.all([
           supabase
             .from("profiles")
             .select("id, pseudo, bio, study_level, is_visible")
             .eq("is_visible", true)
             .returns<ProfileRow[]>(),
           supabase
+            .from("profiles")
+            .select("id, pseudo, bio, study_level, is_visible")
+            .eq("id", user.id)
+            .maybeSingle<ProfileRow>(),
+          supabase
             .from("test_results")
             .select("user_id, mbti_code, created_at")
             .order("created_at", { ascending: false })
             .returns<ResultRow[]>(),
           supabase.from("user_hobbies").select("user_id, hobby").returns<HobbyRow[]>(),
+          supabase
+            .from("buddy_requests")
+            .select("sender_id, receiver_id, status, created_at")
+            .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+            .order("created_at", { ascending: false })
+            .returns<BuddyRequestRow[]>(),
         ]);
 
-        const firstError = profilesRes.error ?? resultsRes.error ?? hobbiesRes.error;
+        const firstError = profilesRes.error ?? myProfileRes.error ?? resultsRes.error ?? hobbiesRes.error ?? requestsRes.error;
         if (firstError) {
           setState({ status: "error", message: firstError.message });
           return;
@@ -110,7 +131,24 @@ export function BuddyDirectoryPage() {
 
         const myHobbies = hobbiesByUser.get(user.id) ?? new Set<string>();
         const myMbti = latestResultByUser.get(user.id) ?? null;
-        const myStudyLevel = (profilesRes.data ?? []).find((profile) => profile.id === user.id)?.study_level ?? null;
+        const myStudyLevel = myProfileRes.data?.study_level ?? null;
+
+        const requestStatusByBuddy = new Map<string, BuddyRequestStatus>();
+        const statusRank: Record<BuddyRequestStatus, number> = {
+          none: 0,
+          rejected: 1,
+          pending: 2,
+          accepted: 3,
+        };
+        for (const row of requestsRes.data ?? []) {
+          if (row.status === "cancelled") continue;
+          const buddyId = row.sender_id === user.id ? row.receiver_id : row.sender_id;
+          const nextStatus = row.status;
+          const currentStatus = requestStatusByBuddy.get(buddyId) ?? "none";
+          if (statusRank[nextStatus] > statusRank[currentStatus]) {
+            requestStatusByBuddy.set(buddyId, nextStatus);
+          }
+        }
 
         const buddies = visibleProfiles.map((profile) => {
           const hobbies = Array.from(hobbiesByUser.get(profile.id) ?? []);
@@ -130,6 +168,7 @@ export function BuddyDirectoryPage() {
             mbti: latestResultByUser.get(profile.id) ?? "MBTI",
             sharedHobbies,
             compatibility,
+            requestStatus: requestStatusByBuddy.get(profile.id) ?? "none",
           };
         });
 
@@ -238,6 +277,7 @@ export function BuddyDirectoryPage() {
                   bio={buddy.bio}
                   sharedHobbies={buddy.sharedHobbies}
                   compatibility={buddy.compatibility}
+                  requestStatus={buddy.requestStatus}
                 />
               ))}
             </div>
