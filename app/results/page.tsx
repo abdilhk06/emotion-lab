@@ -291,7 +291,7 @@ export default function ResultsPage() {
           --gradient: linear-gradient(135deg, #8b4d73 0%, #7d7898 55%, #4aa0d0 100%);
           width: 100%;
           max-width: 1020px;
-          margin: 0 auto;
+          margin: 0;
           padding: 22px 16px 80px;
           background: var(--bg);
           color: var(--text);
@@ -475,7 +475,7 @@ export default function ResultsPage() {
         }
         .state-card {
           max-width: 760px;
-          margin: 0 auto;
+          margin: 0;
           padding: 22px;
           border: 1px solid #e4dcea;
           border-radius: 14px;

@@ -56,6 +56,35 @@ function normalizeHobby(hobby: string): string {
   return hobby.trim().replace(/\s+/g, " ");
 }
 
+const HOBBY_EMOJIS: Record<string, string> = {
+  concerts: "🎤",
+  "decouverte resto": "🍽️",
+  "découverte resto": "🍽️",
+  "developpement durable": "🌱",
+  "développement durable": "🌱",
+  "developpement personnel": "🌟",
+  "développement personnel": "🌟",
+  ecriture: "✍️",
+  "écriture": "✍️",
+  poesie: "✍️",
+  "poésie": "✍️",
+  football: "⚽",
+  "jeux de societe": "🎲",
+  "jeux de société": "🎲",
+  "voyages en van": "🚐",
+  running: "🏃",
+  lecture: "📚",
+  "lecture (romans)": "📚",
+  cuisine: "🍳",
+  tennis: "🎾",
+  cafés: "☕",
+  cinéma: "🎬",
+};
+
+function hobbyEmoji(hobby: string): string {
+  return HOBBY_EMOJIS[normalizeHobby(hobby).toLowerCase()] ?? "✨";
+}
+
 function sortHobbies(hobbies: string[]): string[] {
   return [...hobbies].sort((a, b) => a.localeCompare(b, "fr"));
 }
@@ -384,6 +413,7 @@ export default function ProfilePage() {
                       setForm((prev) => ({ ...prev, hobbies: prev.hobbies.filter((item) => item !== hobby) }));
                     }}
                   >
+                    <span aria-hidden="true">{hobbyEmoji(hobby)}</span>
                     {hobby} <span className="remove" aria-hidden="true">×</span>
                   </button>
                 ))
@@ -500,7 +530,7 @@ export default function ProfilePage() {
           --ombre-md: 0 8px 24px rgba(26, 26, 46, 0.1);
           width: 100%;
           max-width: 900px;
-          margin: 0 auto;
+          margin: 0;
           padding: 28px 16px 90px;
           color: var(--texte);
           background: var(--fond-creme);
@@ -870,7 +900,7 @@ export default function ProfilePage() {
         }
         .state-card {
           max-width: 760px;
-          margin: 0 auto;
+          margin: 0;
           padding: 22px;
           border: 1px solid #e4dcea;
           border-radius: 14px;
@@ -910,7 +940,7 @@ export default function ProfilePage() {
       <style jsx global>{`
         .state-card {
           max-width: 760px;
-          margin: 0 auto;
+          margin: 0;
           padding: 22px;
           border: 1px solid #e4dcea;
           border-radius: 14px;
