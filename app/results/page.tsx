@@ -223,14 +223,14 @@ export default function ResultsPage() {
     const dateLabel = formatResultDate(result.created_at);
 
     return (
-      <main className="compact-results-page">
+      <main className="results-page">
         <h1>Mes résultats</h1>
 
-        <div className="compact-tabs" aria-label="Vue des résultats">
-          <button className="compact-tab active" type="button" aria-pressed="true">
+        <div className="tabs" aria-label="Vue des résultats">
+          <button className="tab active" type="button" aria-pressed="true">
             Actuel
           </button>
-          <button className="compact-tab" type="button" aria-pressed="false">
+          <button className="tab" type="button" aria-pressed="false">
             Historique (1)
           </button>
         </div>
@@ -275,8 +275,8 @@ export default function ResultsPage() {
   return (
     <AppLayout title="Mes resultats">
       {content}
-      <style jsx>{`
-        .compact-results-page {
+      <style jsx global>{`
+        .results-page {
           --plum: #7e3d5e;
           --blue: #2e8bbf;
           --dark: #071238;
@@ -296,7 +296,7 @@ export default function ResultsPage() {
           background: var(--bg);
           color: var(--text);
         }
-        .compact-results-page h1 {
+        .results-page h1 {
           margin: 0 0 22px;
           color: var(--dark);
           font-size: 36px;
@@ -304,7 +304,7 @@ export default function ResultsPage() {
           letter-spacing: -1px;
           line-height: 1.1;
         }
-        .compact-tabs {
+        .tabs {
           display: inline-flex;
           gap: 6px;
           margin-bottom: 20px;
@@ -312,7 +312,7 @@ export default function ResultsPage() {
           border-radius: 12px;
           background: #f4eff8;
         }
-        .compact-tab {
+        .tab {
           border: 0;
           border-radius: 10px;
           background: transparent;
@@ -322,7 +322,7 @@ export default function ResultsPage() {
           font-weight: 600;
           padding: 11px 16px;
         }
-        .compact-tab.active {
+        .tab.active {
           background: #ffffff;
           color: var(--plum);
           box-shadow: 0 2px 8px rgba(126, 61, 94, 0.08);
@@ -494,10 +494,10 @@ export default function ResultsPage() {
           color: #59657f;
         }
         @media (max-width: 700px) {
-          .compact-results-page {
+          .results-page {
             padding: 24px 15px 60px;
           }
-          .compact-results-page h1 {
+          .results-page h1 {
             font-size: 34px;
           }
           .hero-card {
