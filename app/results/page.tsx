@@ -8,7 +8,6 @@ import { BigFiveRadar } from "@/components/results/BigFiveRadar";
 import { BuddySuggestionCard, type BuddySuggestion } from "@/components/results/BuddySuggestionCard";
 import { GaugeCard } from "@/components/results/GaugeCard";
 import { MBTIAxes, type MBTIAxisItem } from "@/components/results/MBTIAxes";
-import { ResultsHero } from "@/components/results/ResultsHero";
 import type { BigFiveScores } from "@/lib/calculate-result";
 import { computeBuddyCompatibilityScore } from "@/lib/compatibility";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -95,6 +94,14 @@ function statusForBalance(value: number) {
 
 function initialFor(profile: ProfileRow): string {
   return (profile.pseudo?.trim().replace(/^@/, "").charAt(0) || "?").toUpperCase();
+}
+
+function formatResultDate(value: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function buildBuddies(params: {
@@ -235,7 +242,34 @@ export default function ResultsPage() {
     return (
       <div className="connected-results">
         <div className="results-container">
-          <ResultsHero mbtiCode={result.mbti_code} mbtiName={result.mbti_name} explanation={`« ${explanation} »`} ctaLabel="📥 Partager mon profil" eyebrow="✨ Ton profil est prêt" />
+          <header className="connected-results-header">
+            <div>
+              <p className="connected-eyebrow">Profil Emotion Lab</p>
+              <h1>Mes résultats</h1>
+            </div>
+            <div className="results-tabs" aria-label="Vue des résultats">
+              <button className="results-tab active" type="button" aria-pressed="true">
+                Actuel
+              </button>
+              <button className="results-tab" type="button" aria-pressed="false">
+                Historique (1)
+              </button>
+            </div>
+          </header>
+
+          <section className="connected-summary-card">
+            <div className="summary-content">
+              <p className="summary-kicker">Profil actuel</p>
+              <div className="summary-code">{result.mbti_code}</div>
+              <h2>{result.mbti_name}</h2>
+              <p className="summary-text">« {explanation} »</p>
+              <p className="summary-date">Dernier résultat : {formatResultDate(result.created_at)}</p>
+            </div>
+            <button className="summary-pdf" type="button">
+              Télécharger mes résultats (PDF)
+            </button>
+          </section>
+
           <div className="results-body">
             <section className="results-section">
               <div className="results-section-title">Tes 4 dimensions</div>
@@ -292,68 +326,104 @@ export default function ResultsPage() {
           margin: 0 auto;
           padding-top: 0;
         }
-        .results-body {
-          padding: 48px 0 0;
-          display: grid;
-          gap: 40px;
-        }
-        :global(.results-hero) {
-          min-height: 505px;
+        .connected-results-header {
           display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          color: #fff;
-          border-radius: 18px;
-          padding: 66px 24px 60px;
-          background: linear-gradient(126deg, #90446d 0%, #8e7895 54%, #2d99c8 100%);
-          box-shadow: none;
-          overflow: hidden;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 18px;
+          margin-bottom: 22px;
         }
-        :global(.results-hero-head) {
-          display: grid;
-          justify-items: center;
-          gap: 26px;
-        }
-        :global(.eyebrow) {
-          margin-bottom: 26px;
-          border: 1px solid rgba(255, 255, 255, 0.24);
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.14);
-          padding: 8px 17px;
-          font-size: 14px;
-          font-weight: 500;
-        }
-        :global(.results-code) {
-          font-size: clamp(4.8rem, 10vw, 7.25rem);
-          line-height: 0.9;
-          font-weight: 900;
-          color: #fffdf9;
-        }
-        :global(.results-name) {
-          margin-top: 25px;
-          font-size: clamp(1.9rem, 4vw, 2.1rem);
+        .connected-eyebrow {
+          margin: 0 0 6px;
+          color: #697796;
+          font-size: 13px;
           font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
         }
-        :global(.results-tagline) {
-          max-width: 560px;
-          margin: 26px auto 0;
-          color: rgba(255, 255, 255, 0.94);
-          font-size: 17px;
-          font-style: italic;
+        .connected-results-header h1 {
+          margin: 0;
+          color: #07123a;
+          font-size: 32px;
+          line-height: 1.1;
+        }
+        .results-tabs {
+          display: inline-flex;
+          gap: 4px;
+          border: 1px solid #e4dcea;
+          border-radius: 12px;
+          background: #fff;
+          padding: 4px;
+        }
+        .results-tab {
+          border: 0;
+          border-radius: 9px;
+          background: transparent;
+          color: #59657f;
+          cursor: default;
+          font-weight: 800;
+          min-height: 36px;
+          padding: 0 14px;
+        }
+        .results-tab.active {
+          background: #8a315f;
+          color: #fff;
+        }
+        .connected-summary-card {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: end;
+          gap: 22px;
+          border-radius: 16px;
+          padding: 26px;
+          color: #fff;
+          background: linear-gradient(126deg, #90446d 0%, #8e7895 56%, #2d99c8 100%);
+        }
+        .summary-kicker {
+          margin: 0 0 10px;
+          color: rgba(255, 255, 255, 0.78);
+          font-size: 13px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .summary-code {
+          font-size: 54px;
+          font-weight: 900;
+          line-height: 0.95;
+        }
+        .summary-content h2 {
+          margin: 8px 0 0;
+          font-size: 24px;
+          line-height: 1.15;
+        }
+        .summary-text {
+          max-width: 620px;
+          margin: 12px 0 0;
+          color: rgba(255, 255, 255, 0.9);
           font-weight: 600;
           line-height: 1.45;
         }
-        :global(.results-share) {
+        .summary-date {
+          margin: 14px 0 0;
+          color: rgba(255, 255, 255, 0.78);
+          font-size: 13px;
+          font-weight: 700;
+        }
+        .summary-pdf {
           border: 0;
-          border-radius: 999px;
+          border-radius: 10px;
           background: #fff;
           color: #89406a;
-          padding: 13px 28px;
-          font-weight: 800;
-          box-shadow: 0 14px 28px rgba(39, 34, 64, 0.2);
-          min-height: 43px;
+          min-height: 44px;
+          padding: 0 18px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+        .results-body {
+          padding: 30px 0 0;
+          display: grid;
+          gap: 40px;
         }
         :global(.results-section) {
           background: transparent;
@@ -703,6 +773,22 @@ export default function ResultsPage() {
           .connected-results {
             padding-bottom: 44px;
           }
+          .connected-results-header,
+          .connected-summary-card {
+            grid-template-columns: 1fr;
+          }
+          .connected-results-header {
+            align-items: stretch;
+          }
+          .results-tabs {
+            width: 100%;
+          }
+          .results-tab {
+            flex: 1;
+          }
+          .summary-pdf {
+            width: 100%;
+          }
           :global(.axes-grid),
           :global(.big-five-grid),
           :global(.gauges-grid),
@@ -711,13 +797,11 @@ export default function ResultsPage() {
           }
         }
         @media (max-width: 640px) {
-          :global(.results-hero) {
-            min-height: 430px;
-            padding-inline: 16px;
-            border-radius: 16px;
+          .connected-summary-card {
+            padding: 22px;
           }
-          :global(.results-code) {
-            font-size: 4.2rem;
+          .summary-code {
+            font-size: 44px;
           }
           .results-footer :global(.btn) {
             width: 100%;
