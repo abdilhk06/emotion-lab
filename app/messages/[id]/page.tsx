@@ -11,10 +11,10 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 
 type ConversationRow = {
   id: string;
-  sender_id?: string;
-  receiver_id?: string;
-  user_1_id?: string;
-  user_2_id?: string;
+  sender_id: string | null;
+  receiver_id: string | null;
+  user_1_id?: string | null;
+  user_2_id?: string | null;
 };
 
 type MessageRow = {
@@ -54,8 +54,8 @@ function getInitials(pseudo: string): string {
 }
 
 function resolveParticipants(conversation: ConversationRow) {
-  const first = conversation.user_1_id ?? conversation.sender_id ?? null;
-  const second = conversation.user_2_id ?? conversation.receiver_id ?? null;
+  const first = conversation.sender_id ?? conversation.user_1_id ?? null;
+  const second = conversation.receiver_id ?? conversation.user_2_id ?? null;
   return { first, second };
 }
 

@@ -9,10 +9,10 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 
 type ConversationRow = {
   id: string;
-  user_1_id?: string;
-  user_2_id?: string;
-  sender_id?: string;
-  receiver_id?: string;
+  sender_id: string | null;
+  receiver_id: string | null;
+  user_1_id?: string | null;
+  user_2_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -43,8 +43,8 @@ type MessagesState =
   | { status: "ready"; items: ConversationViewModel[] };
 
 function computeOtherUserId(conversation: ConversationRow, currentUserId: string): string | null {
-  const first = conversation.user_1_id ?? conversation.sender_id ?? null;
-  const second = conversation.user_2_id ?? conversation.receiver_id ?? null;
+  const first = conversation.sender_id ?? conversation.user_1_id ?? null;
+  const second = conversation.receiver_id ?? conversation.user_2_id ?? null;
 
   if (!first || !second) return null;
   if (first === currentUserId) return second;
@@ -96,21 +96,21 @@ function formatTimeLabel(value: string): string {
 async function fetchConversationsForUser(userId: string) {
   const supabase = getSupabaseClient();
 
-  const primary = await supabase
+  const canonical = await supabase
     .from("conversations")
-    .select("id, user_1_id, user_2_id, created_at, updated_at")
-    .or(`user_1_id.eq.${userId},user_2_id.eq.${userId}`)
-    .returns<ConversationRow[]>();
-
-  if (!primary.error) return primary;
-
-  const fallback = await supabase
-    .from("conversations")
-    .select("id, sender_id, receiver_id, created_at, updated_at")
+    .select("id, sender_id, receiver_id, user_1_id, user_2_id, created_at, updated_at")
     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
     .returns<ConversationRow[]>();
 
-  return fallback;
+  if (canonical.error || (canonical.data ?? []).length > 0) return canonical;
+
+  const compatibility = await supabase
+    .from("conversations")
+    .select("id, sender_id, receiver_id, user_1_id, user_2_id, created_at, updated_at")
+    .or(`user_1_id.eq.${userId},user_2_id.eq.${userId}`)
+    .returns<ConversationRow[]>();
+
+  return compatibility;
 }
 
 export function ConversationList() {

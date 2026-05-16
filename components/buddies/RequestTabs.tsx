@@ -206,6 +206,8 @@ export function RequestTabs() {
         const insertRes = await supabase.from("conversations").insert({
           sender_id: request.senderId,
           receiver_id: request.receiverId,
+          user_1_id: request.senderId,
+          user_2_id: request.receiverId,
         });
         if (insertRes.error) throw insertRes.error;
       }
