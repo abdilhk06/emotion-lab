@@ -28,40 +28,43 @@ export function MessageInputBar({ onSend, disabled = false }: MessageInputBarPro
         disabled={disabled}
         maxLength={1000}
       />
-      <button type="submit" disabled={disabled || value.trim().length === 0}>
-        Envoyer
+      <button type="submit" aria-label="Envoyer le message" disabled={disabled || value.trim().length === 0}>
+        →
       </button>
 
       <style jsx>{`
         .input-bar {
-          display: grid;
-          grid-template-columns: 1fr auto;
+          display: flex;
           gap: 10px;
           align-items: center;
-          border: 1px solid var(--bordure);
+          border-top: 1px solid #e5e0ec;
           background: #fff;
-          border-radius: 14px;
-          padding: 10px;
+          padding: 14px 20px;
         }
 
         input {
           min-width: 0;
-          height: 42px;
-          border-radius: 10px;
-          border: 1px solid var(--bordure);
-          padding: 0 12px;
+          flex: 1;
+          height: 44px;
+          border-radius: 24px;
+          border: 1px solid #e5e0ec;
+          padding: 0 16px;
           font: inherit;
+          font-size: 14px;
+          outline: none;
         }
 
         button {
-          height: 42px;
-          border-radius: 10px;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
           border: none;
-          background: var(--plum);
+          background: #7e3d5e;
           color: #fff;
-          font-weight: 600;
-          padding: 0 14px;
+          font-size: 20px;
+          font-weight: 700;
           cursor: pointer;
+          flex: 0 0 auto;
         }
 
         button:disabled {

@@ -288,29 +288,44 @@ export function ConversationList() {
 
       <style jsx>{`
         .messages-page {
+          max-width: 1020px;
+          margin: 0;
+          padding: 18px 8px 80px;
           display: grid;
-          gap: 14px;
+          gap: 0;
+          color: #071238;
         }
 
         .messages-page h1 {
-          margin: 0;
-          color: #7e3d5e;
-          font-size: 32px;
+          margin: 0 0 20px;
+          color: #071238;
+          font-family: "Poppins", sans-serif;
+          font-size: 36px;
+          font-weight: 800;
         }
 
         .messages-search {
-          display: block;
+          height: 44px;
+          display: flex;
+          align-items: center;
           background: #fff;
-          border: 1px solid #e4dcea;
+          border: 1px solid #e5e0ec;
           border-radius: 12px;
-          padding: 12px 14px;
+          padding: 0 18px;
+          margin-bottom: 22px;
+        }
+
+        .messages-search::before {
+          content: "⌕";
+          color: #61708a;
+          margin-right: 10px;
         }
 
         .messages-search input {
           width: 100%;
           border: 0;
           outline: 0;
-          color: var(--texte);
+          color: #071238;
           font-size: 14px;
           background: transparent;
         }
@@ -318,7 +333,7 @@ export function ConversationList() {
         .conv-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 2px;
         }
 
         .state-card {
@@ -348,25 +363,27 @@ export function ConversationList() {
           display: flex;
           align-items: center;
           gap: 14px;
-          background: #fff;
-          border: 1px solid #e4dcea;
+          background: transparent;
+          border: 0;
           border-radius: 14px;
-          padding: 16px;
+          padding: 14px;
           text-decoration: none;
           color: inherit;
           transition: background 0.15s;
+          position: relative;
         }
         :global(.conv-row:hover) {
-          background: #faf8fc;
+          background: #f5f0f7;
         }
         :global(.conv-avatar) {
-          width: 48px;
-          height: 48px;
+          width: 52px;
+          height: 52px;
           border-radius: 999px;
           flex-shrink: 0;
-          background: linear-gradient(135deg, #9d4b7a, #2f91bd);
+          background: linear-gradient(135deg, #8b4d73, #6f92b8);
           color: #fff;
-          font-weight: 700;
+          font-family: "Poppins", sans-serif;
+          font-weight: 800;
           font-size: 19px;
           display: grid;
           place-items: center;
@@ -377,12 +394,12 @@ export function ConversationList() {
         }
         :global(.conv-handle) {
           color: #7e3d5e;
-          font-weight: 700;
+          font-weight: 800;
           font-size: 15px;
         }
         :global(.conv-preview) {
-          margin: 2px 0 0;
-          color: #66738e;
+          margin: 5px 0 0;
+          color: #25395e;
           font-size: 14px;
           white-space: nowrap;
           overflow: hidden;
@@ -395,7 +412,7 @@ export function ConversationList() {
           gap: 6px;
         }
         :global(.conv-time) {
-          color: #9aa4b8;
+          color: #64718b;
           font-size: 12px;
         }
         :global(.unread-badge) {

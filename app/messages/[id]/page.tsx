@@ -20,8 +20,7 @@ type ConversationRow = {
 type MessageRow = {
   id: string;
   sender_id: string;
-  body?: string | null;
-  content?: string | null;
+  body: string | null;
   created_at: string;
 };
 
@@ -64,28 +63,20 @@ async function insertMessage(
   conversationId: string,
   senderId: string,
   content: string
-): Promise<{ id: string; sender_id: string; body?: string | null; content?: string | null; created_at: string }> {
+): Promise<MessageRow> {
   const supabase = getSupabaseClient();
 
-  const asContent = await supabase
-    .from("messages")
-    .insert({ conversation_id: conversationId, sender_id: senderId, content })
-    .select("id, sender_id, content, created_at")
-    .single<MessageRow>();
-
-  if (!asContent.error && asContent.data) return asContent.data;
-
-  const asBody = await supabase
+  const result = await supabase
     .from("messages")
     .insert({ conversation_id: conversationId, sender_id: senderId, body: content })
     .select("id, sender_id, body, created_at")
     .single<MessageRow>();
 
-  if (asBody.error || !asBody.data) {
-    throw new Error(asBody.error?.message || asContent.error?.message || "Impossible d'envoyer le message.");
+  if (result.error || !result.data) {
+    throw new Error(result.error?.message || "Impossible d'envoyer le message.");
   }
 
-  return asBody.data;
+  return result.data;
 }
 
 export default function ConversationPage() {
@@ -151,7 +142,7 @@ export default function ConversationPage() {
             .maybeSingle<ProfileRow>(),
           supabase
             .from("messages")
-            .select("id, sender_id, body, content, created_at")
+            .select("id, sender_id, body, created_at")
             .eq("conversation_id", conversationId)
             .order("created_at", { ascending: true })
             .returns<MessageRow[]>(),
@@ -176,7 +167,7 @@ export default function ConversationPage() {
           messages: (messagesRes.data ?? []).map((row) => ({
             id: row.id,
             senderId: row.sender_id,
-            content: row.content?.trim() || row.body?.trim() || "",
+            content: row.body?.trim() || "",
             createdAt: row.created_at,
           })),
         });
@@ -210,7 +201,7 @@ export default function ConversationPage() {
               {
                 id: newMessage.id,
                 senderId: newMessage.sender_id,
-                content: newMessage.content?.trim() || newMessage.body?.trim() || content,
+                content: newMessage.body?.trim() || content,
                 createdAt: newMessage.created_at,
               },
             ],
@@ -292,8 +283,14 @@ export default function ConversationPage() {
 
       <style jsx>{`
         .conversation-wrap {
-          display: grid;
-          gap: 12px;
+          max-width: 1020px;
+          height: calc(100vh - 48px);
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          border-left: 1px solid #e5e0ec;
+          border-right: 1px solid #e5e0ec;
+          background: #fffcff;
         }
 
         .state-card {
@@ -321,6 +318,7 @@ export default function ConversationPage() {
         .send-state,
         .send-error {
           margin: 0;
+          padding: 0 20px;
           font-size: 13px;
           color: var(--texte-clair);
         }

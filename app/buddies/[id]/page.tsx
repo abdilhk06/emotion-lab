@@ -278,7 +278,7 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
         />
         <BioCard title="Sa bio" content={data.bio} fallback="Cette personne n'a pas encore ajoute de bio." />
         <BioCard title="Ce qu'elle cherche" content={data.lookingFor} fallback="Objectif de binome non precise pour le moment." />
-        <PersonalitySummary mbtiCode={data.mbtiCode} mbtiName={data.mbtiName} />
+        <PersonalitySummary mbtiCode={data.mbtiCode} mbtiName={data.mbtiName} studyLevel={data.studyLevel} />
         <SharedHobbies buddyHobbies={data.buddyHobbies} sharedHobbies={data.sharedHobbies} />
         <BuddyCTA isSelf={data.isSelf} existingStatus={data.existingRequestStatus} onSendRequest={onSendRequest} />
         <div className="buddy-report">
@@ -303,79 +303,101 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
         .buddy-detail-page,
         .buddy-detail-stack {
           display: grid;
-          gap: 14px;
+          gap: 0;
+        }
+        .buddy-detail-page {
+          max-width: 1000px;
+          margin: 0;
+          padding: 30px 8px 80px;
+          color: #071238;
         }
         .buddy-back {
           justify-self: start;
-          padding: 10px 14px;
+          border: 0;
+          background: transparent;
+          color: #25395e;
+          font-weight: 700;
+          margin-bottom: 22px;
+          padding: 0;
         }
         :global(.buddy-hero) {
-          background: linear-gradient(132deg, #7e3d5e, #8a6889 52%, #62809a);
+          min-height: 310px;
+          background: linear-gradient(135deg, #8b4d73, #348dbd);
           color: #fff;
           border-radius: 18px;
-          padding: 24px;
+          padding: 30px;
           display: grid;
           justify-items: center;
+          align-content: center;
           text-align: center;
-          gap: 8px;
+          gap: 0;
+          margin-bottom: 26px;
         }
         :global(.buddy-hero-avatar) {
-          width: 84px;
-          height: 84px;
-          border-radius: 24px;
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
           border: 3px solid rgba(255, 255, 255, 0.35);
           display: inline-flex;
           align-items: center;
           justify-content: center;
           font-family: "Poppins", sans-serif;
-          font-size: 34px;
-          font-weight: 700;
+          font-size: 42px;
+          font-weight: 800;
           background: rgba(255, 255, 255, 0.16);
+          margin-bottom: 18px;
         }
         :global(.buddy-hero h2) {
           margin: 0;
-          font-size: clamp(26px, 4.4vw, 34px);
+          font-family: "Poppins", sans-serif;
+          font-size: 34px;
+          color: #fff;
         }
         :global(.buddy-hero-meta) {
-          margin: 0;
+          margin: 6px 0 16px;
           color: rgba(255, 255, 255, 0.92);
+          font-size: 14px;
         }
         :global(.compatibility-badge) {
           display: inline-flex;
           align-items: center;
           justify-content: center;
           border-radius: 999px;
-          padding: 8px 12px;
-          font-size: 13px;
-          font-weight: 700;
-        }
-        :global(.compatibility-badge.high) {
-          color: #0e9f6e;
-          background: #ebfff5;
-        }
-        :global(.compatibility-badge.mid) {
-          color: #d97706;
-          background: #fff7e9;
-        }
-        :global(.compatibility-badge.low) {
-          color: #6b7280;
-          background: #f3f4f6;
+          padding: 10px 18px;
+          font-size: 14px;
+          font-weight: 800;
+          color: #fff;
+          background: rgba(255, 255, 255, 0.16);
+          border: 1px solid rgba(255, 255, 255, 0.25);
         }
         :global(.buddy-section),
         .buddy-state-card {
+          margin-bottom: 24px;
+        }
+        :global(.buddy-bio-card),
+        :global(.buddy-personality-card),
+        .buddy-state-card {
           background: #fff;
-          border: 1px solid var(--bordure);
-          border-radius: 16px;
-          padding: 16px;
+          border: 1px solid #e5e0ec;
+          border-radius: 14px;
+          padding: 20px;
+          box-shadow: 0 8px 24px rgba(26, 26, 46, 0.08);
         }
         :global(.buddy-section-title),
         .buddy-state-card h2 {
-          margin: 0 0 8px;
+          margin: 0 0 12px;
+          text-transform: uppercase;
+          letter-spacing: 3px;
+          color: #7e3d5e;
+          font-size: 13px;
+          font-weight: 800;
         }
         :global(.buddy-bio-card p),
         .buddy-state-card p {
           margin: 0;
-          color: var(--texte-gris);
+          color: #071238;
+          font-style: italic;
+          line-height: 1.7;
         }
         :global(.buddy-hobbies-list) {
           display: flex;
@@ -384,18 +406,17 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
         }
         :global(.buddy-hobby-chip) {
           border-radius: 999px;
-          border: 1px solid #e9deef;
-          padding: 6px 10px;
+          border: 0;
+          padding: 7px 12px;
           font-size: 13px;
         }
         :global(.buddy-hobby-chip.shared) {
-          color: var(--plum);
-          background: #f8eef5;
+          color: #7e3d5e;
+          background: #f7bac1;
         }
         :global(.buddy-hobby-chip.muted) {
-          color: var(--texte-clair);
-          background: #f8fafc;
-          border-color: #e5e7eb;
+          color: #31405d;
+          background: #f5f0f7;
         }
         :global(.buddy-shared-note),
         :global(.buddy-muted),
@@ -406,7 +427,8 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
         }
         :global(.buddy-shared-note),
         :global(.buddy-success) {
-          color: var(--plum);
+          color: #7e3d5e;
+          font-weight: 700;
         }
         :global(.buddy-muted) {
           color: var(--texte-clair);
@@ -414,28 +436,35 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
         :global(.buddy-error) {
           color: #b42318;
         }
-        :global(.buddy-personality-card) {
-          border: 1px solid var(--bordure);
-          border-radius: 12px;
-          padding: 12px;
-          background: #fbf9fd;
-        }
         :global(.buddy-info-row) {
-          display: flex;
+          display: grid;
+          grid-template-columns: 32px 140px 1fr;
           align-items: center;
-          justify-content: space-between;
-          gap: 10px;
+          gap: 12px;
+          padding: 15px 4px;
+          border-bottom: 1px dashed #e5e0ec;
+        }
+        :global(.buddy-info-row:last-child) {
+          border-bottom: 0;
         }
         :global(.buddy-info-label) {
-          color: var(--texte-gris);
+          color: #657493;
         }
         :global(.buddy-info-value) {
-          color: var(--plum);
-          font-weight: 600;
+          color: #7e3d5e;
+          font-weight: 800;
+        }
+        :global(.buddy-info-value.plain) {
+          color: #071238;
         }
         :global(.buddy-cta) {
           display: grid;
           gap: 10px;
+          background: #fff;
+          border: 1px solid #e5e0ec;
+          border-radius: 16px;
+          padding: 16px;
+          box-shadow: 0 8px 24px rgba(26, 26, 46, 0.08);
         }
         :global(.buddy-label) {
           font-size: 13px;
@@ -451,7 +480,8 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
           resize: vertical;
         }
         :global(.buddy-report) {
-          text-align: right;
+          text-align: center;
+          margin-top: -6px;
         }
         :global(.buddy-report-link) {
           border: 0;

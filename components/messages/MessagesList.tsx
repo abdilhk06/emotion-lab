@@ -63,10 +63,10 @@ export function MessagesList({ messages, currentUserId }: MessagesListProps) {
       <style jsx>{`
         .messages-list {
           display: grid;
-          gap: 10px;
-          max-height: 62vh;
+          gap: 14px;
+          flex: 1;
           overflow-y: auto;
-          padding: 4px;
+          padding: 36px 20px 18px;
         }
       `}</style>
     </section>

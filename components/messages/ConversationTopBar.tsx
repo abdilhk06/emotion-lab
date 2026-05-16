@@ -21,57 +21,58 @@ export function ConversationTopBar({ pseudo, studyLevel, initials }: Conversatio
 
       <div className="buddy-meta">
         <h2>{pseudo}</h2>
-        <p>{studyLevel}</p>
+        <p><span aria-hidden="true">●</span> En ligne · {studyLevel}</p>
       </div>
 
       <style jsx>{`
         .conversation-top-bar {
+          min-height: 66px;
           display: grid;
-          grid-template-columns: auto auto 1fr;
+          grid-template-columns: auto auto 1fr auto;
           gap: 12px;
           align-items: center;
-          border: 1px solid var(--bordure);
+          border-bottom: 1px solid #e5e0ec;
           background: #fff;
-          border-radius: 14px;
-          padding: 10px 12px;
+          padding: 0 20px;
         }
 
         .back-btn {
           width: 36px;
           height: 36px;
-          border-radius: 10px;
-          border: 1px solid var(--bordure);
+          border-radius: 50%;
+          border: 0;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           color: var(--texte);
           text-decoration: none;
           font-size: 18px;
-          background: #fff;
+          background: transparent;
         }
 
         .avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
           display: grid;
           place-items: center;
           color: #fff;
           font-family: "Poppins", sans-serif;
           font-weight: 700;
-          background: linear-gradient(135deg, var(--plum) 0%, #8a6889 42%, var(--bleu-ciel) 100%);
+          background: linear-gradient(135deg, #8b4d73, #6f92b8);
         }
 
         .buddy-meta h2 {
           margin: 0;
+          font-family: "Poppins", sans-serif;
           font-size: 16px;
-          color: var(--texte);
+          color: #071238;
         }
 
         .buddy-meta p {
           margin: 2px 0 0;
-          font-size: 13px;
-          color: var(--texte-clair);
+          font-size: 12px;
+          color: #35b66b;
         }
       `}</style>
     </header>

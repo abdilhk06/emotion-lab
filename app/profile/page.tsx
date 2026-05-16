@@ -42,6 +42,7 @@ type ProfileState =
 const BIO_MAX = 200;
 const LOOKING_FOR_MAX = 100;
 const HOBBIES_MAX = 15;
+const STUDY_LEVEL_CHOICES = ["L1", "L2", "L3", "PM", "M1", "M2", "LAUREAT"] as const;
 
 const EMPTY_FORM: FormValues = {
   pseudo: "",
@@ -165,7 +166,9 @@ export default function ProfilePage() {
 
         const nextForm: FormValues = {
           pseudo: profileRes.data.pseudo?.trim() ?? "",
-          studyLevel: profileRes.data.study_level?.trim() ?? "",
+          studyLevel: STUDY_LEVEL_CHOICES.includes(profileRes.data.study_level?.trim() as (typeof STUDY_LEVEL_CHOICES)[number])
+            ? profileRes.data.study_level?.trim() ?? ""
+            : "",
           bio: profileRes.data.bio?.trim() ?? "",
           lookingFor: profileRes.data.looking_for?.trim() ?? "",
           isVisible: profileRes.data.is_visible ?? true,
@@ -440,14 +443,18 @@ export default function ProfilePage() {
             </div>
             <div className="input-group">
               <label htmlFor="profile-study-level">Niveau d&apos;etudes</label>
-              <input
+              <select
                 id="profile-study-level"
-                type="text"
                 value={form.studyLevel}
-                maxLength={60}
                 onChange={(event) => setForm((prev) => ({ ...prev, studyLevel: event.target.value }))}
-                placeholder="Ex: PM - ISCAE"
-              />
+              >
+                <option value="">Choisir un niveau</option>
+                {STUDY_LEVEL_CHOICES.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="preference-grid" aria-label="Preferences issues du profil">
               <div className="input-group">

@@ -28,36 +28,37 @@ export function MessageBubble({ content, timeLabel, isMine }: MessageBubbleProps
         }
 
         .bubble-wrap {
-          max-width: min(78%, 520px);
+          max-width: min(82vw, 430px);
           display: grid;
-          gap: 4px;
+          gap: 5px;
         }
 
         .bubble {
           margin: 0;
-          padding: 10px 12px;
-          border-radius: 14px;
+          padding: 10px 15px;
+          border-radius: 16px;
           white-space: pre-wrap;
           word-break: break-word;
+          border: 1px solid #e5e0ec;
+          background: #fff;
+          font-size: 14px;
         }
 
         .mine .bubble {
-          background: linear-gradient(135deg, #6f3453 0%, #2e8bbf 100%);
+          background: #7e3d5e;
           color: #fff;
-          border-bottom-right-radius: 6px;
+          border-color: #7e3d5e;
+          font-weight: 700;
         }
 
         .theirs .bubble {
-          border: 1px solid var(--bordure);
-          background: #fff;
-          color: var(--texte);
-          border-bottom-left-radius: 6px;
+          color: #071238;
         }
 
         .time {
-          color: var(--texte-clair);
-          font-size: 12px;
-          padding: 0 4px;
+          color: #64718b;
+          font-size: 11px;
+          padding: 0 6px;
         }
 
         .mine .time {
