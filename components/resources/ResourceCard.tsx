@@ -13,87 +13,105 @@ export type Resource = {
 };
 
 export function ResourceCard({ resource }: { resource: Resource }) {
+  const thumbClass = `resource-thumb ${
+    resource.category === "Sommeil"
+      ? "thumb-2"
+      : resource.category === "Organisation"
+        ? "thumb-3"
+        : resource.category === "Examens"
+          ? "thumb-4"
+          : ""
+  }`;
+
   return (
-    <article className="resource-card">
-      <div className="resource-icon" aria-hidden="true">
-        {resource.icon}
+    <article className="resource-card card">
+      <div className={thumbClass} aria-hidden="true">
+        <span>{resource.icon}</span>
       </div>
       <div className="resource-body">
         <p className="resource-category">{resource.category}</p>
         <h3>{resource.title}</h3>
-        <p className="resource-description">{resource.description}</p>
         <p className="resource-meta">
-          <span>{resource.type}</span>
-          <span aria-hidden="true">•</span>
           <span>{resource.duration}</span>
         </p>
         <Link className="resource-cta" href={`/resources/${resource.slug}`}>
-          {resource.ctaLabel}
+          {resource.ctaLabel} →
         </Link>
       </div>
       <style jsx>{`
         .resource-card {
-          background: #fff;
+          cursor: pointer;
+          overflow: hidden;
+          padding: 0;
           border: 1px solid var(--bordure);
-          border-radius: 18px;
-          padding: 18px;
-          display: grid;
-          grid-template-columns: 56px 1fr;
-          gap: 14px;
-          transition: transform 140ms ease, box-shadow 140ms ease;
+          border-radius: 16px;
+          transition: all 0.2s ease;
         }
 
         .resource-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 12px 26px rgba(46, 34, 58, 0.1);
+          box-shadow: 0 8px 24px rgba(26, 26, 46, 0.1);
         }
 
-        .resource-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 14px;
-          display: inline-flex;
+        .resource-thumb {
+          height: 120px;
+          background: linear-gradient(135deg, var(--rose-pale), var(--bleu-pale));
+          display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 26px;
-          background: linear-gradient(160deg, #f6ebf4 0%, #e9f2fb 100%);
+          font-size: 42px;
+        }
+
+        .resource-thumb span {
+          line-height: 1;
+        }
+
+        .resource-thumb.thumb-2 {
+          background: linear-gradient(135deg, var(--bleu-pale), #8a6889);
+        }
+
+        .resource-thumb.thumb-3 {
+          background: linear-gradient(135deg, #8a6889, var(--plum));
+        }
+
+        .resource-thumb.thumb-4 {
+          background: linear-gradient(135deg, #f2adb2, var(--rose-pale));
+        }
+
+        .resource-body {
+          padding: 18px;
         }
 
         .resource-body h3 {
           margin: 0 0 8px;
-          font-size: 18px;
+          font-size: 16px;
           color: var(--texte);
+          line-height: 1.3;
         }
 
         .resource-category {
           margin: 0 0 6px;
           color: var(--plum);
-          font-size: 12px;
+          font-size: 11px;
           text-transform: uppercase;
-          letter-spacing: 0.06em;
+          letter-spacing: 1px;
           font-weight: 600;
         }
 
-        .resource-description {
-          margin: 0 0 10px;
-          color: var(--texte-gris);
-          font-size: 14px;
-        }
-
         .resource-meta {
-          margin: 0 0 12px;
+          margin: 0 0 10px;
           color: var(--texte-clair);
-          font-size: 13px;
-          display: inline-flex;
+          font-size: 12px;
+          display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
         }
 
         .resource-cta {
           color: var(--bleu-ciel);
           text-decoration: none;
           font-weight: 600;
-          font-size: 14px;
+          font-size: 13px;
         }
 
         .resource-cta:hover {

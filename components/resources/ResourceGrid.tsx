@@ -93,12 +93,12 @@ export function ResourceGrid({ resources }: ResourceGridProps) {
       <style jsx>{`
         .resources-stack {
           display: grid;
-          gap: 16px;
+          gap: 18px;
         }
 
         .resources-controls {
           display: grid;
-          gap: 12px;
+          gap: 14px;
         }
 
         .search-wrap {
@@ -130,29 +130,36 @@ export function ResourceGrid({ resources }: ResourceGridProps) {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
+          align-items: center;
         }
 
         .chip {
-          border: 1px solid #d8cfe3;
+          border: 1.5px solid var(--bordure);
           background: #fff;
           color: var(--texte-gris);
-          border-radius: 999px;
-          padding: 8px 14px;
+          border-radius: 9999px;
+          padding: 6px 14px;
           font-size: 13px;
-          font-weight: 600;
+          font-weight: 500;
           cursor: pointer;
+          transition: all 0.15s;
         }
 
         .chip.active {
           border-color: var(--plum);
-          background: #f8eef5;
+          background: var(--plum);
+          color: #fff;
+        }
+
+        .chip:hover {
+          border-color: var(--plum);
           color: var(--plum);
         }
 
         .resources-grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 16px;
         }
 
         .empty-state {
@@ -173,7 +180,13 @@ export function ResourceGrid({ resources }: ResourceGridProps) {
           color: var(--texte-gris);
         }
 
-        @media (max-width: 860px) {
+        @media (max-width: 980px) {
+          .resources-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 800px) {
           .resources-grid {
             grid-template-columns: 1fr;
           }
