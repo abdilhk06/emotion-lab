@@ -19,3 +19,13 @@ export function isCrisisMessage(input: string): boolean {
   if (!text) return false;
   return CRISIS_PATTERNS.some((pattern) => pattern.test(text));
 }
+
+export function detectChatMode(input: string): "emotional_support" | "planning" | "hybrid" {
+  const text = input.toLowerCase();
+  const planningHits = /(plan|todo|to-do|schedule|revision|deadline|organis|checklist|priorit)/i.test(text);
+  const emotionalHits = /(stress|anx|triste|peur|deprime|epuise|burn|emotion|angoiss|deborde)/i.test(text);
+  if (planningHits && emotionalHits) return "hybrid";
+  if (planningHits) return "planning";
+  if (emotionalHits) return "emotional_support";
+  return "hybrid";
+}

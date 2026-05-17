@@ -1,11 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { isCrisisMessage, LOCAL_CRISIS_RESPONSE } from "@/lib/chatbot/safety";
+import { detectChatMode, isCrisisMessage, LOCAL_CRISIS_RESPONSE } from "@/lib/chatbot/safety";
 import { planRequestSchema, planResponseSchema } from "@/lib/chatbot/planner-schema";
 
 const SYSTEM_INSTRUCTION =
-  "Tu es un coach de planification pour etudiant·e francophone. Ton ton est chaleureux, pratique, concis et actionnable. Tu aides a transformer objectifs, todo lists et charge de revisions en plan concret. Tu n'offres pas de conseils medicaux, psychologiques cliniques, juridiques ou financiers.";
+  "Tu es assistant double role: soutien emotionnel + planification personnalisee pour etudiant·e francophone. Toujours commencer par securite: si detresse severe, repondre soutien + ressources, ne pas pousser productivite. Trois modes: emotional_support, planning, hybrid. En planning, demander uniquement infos manquantes avant plan complet. Personnaliser avec stress, organisation, MBTI, Big Five, hobbies et preferences. Regles plan: stress eleve => blocs plus courts, plus de pauses, charge quotidienne reduite; organisation elevee => checklist structuree + sequence serree; organisation basse => etapes simples + peu de taches paralleles; night preference => deep-work la nuit sans nuire sommeil; extraversion/introversion => proposer travail groupe/solo utile. Si pas de resultats test: expliquer personnalisation limitee, poser mini questions profilage, puis plan baseline prudent.";
 
 const responseSchema = {
   type: "object",
@@ -14,6 +14,23 @@ const responseSchema = {
     summary: { type: "string" },
     objective: { type: "string" },
     timeframe: { type: "string" },
+    mode: { type: "string", enum: ["emotional_support", "planning", "hybrid"] },
+    inputGaps: { type: "array", items: { type: "string" } },
+    timeBlocks: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["day", "start", "end", "focus", "priority", "breakNote"],
+        properties: {
+          day: { type: "string" },
+          start: { type: "string" },
+          end: { type: "string" },
+          focus: { type: "string" },
+          priority: { type: "string", enum: ["high", "medium", "low"] },
+          breakNote: { type: "string" },
+        },
+      },
+    },
     planSections: {
       type: "array",
       items: {
@@ -63,14 +80,36 @@ export async function POST(request: Request) {
     const parsed = planRequestSchema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Requete invalide." }, { status: 400 });
 
-    const { message, context } = parsed.data;
+    const { message, context, userContext, mode } = parsed.data;
     if (isCrisisMessage(message)) return NextResponse.json({ crisis: true, message: LOCAL_CRISIS_RESPONSE }, { status: 200 });
+
+    const [latestResultRes, hobbiesRes] = await Promise.all([
+      supabase
+        .from("test_results")
+        .select("mbti_code, mbti_name, big_five_scores, stress_score, balance_score, created_at")
+        .eq("user_id", authData.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from("user_hobbies").select("hobby").eq("user_id", authData.user.id),
+    ]);
+
+    const personalization = {
+      hasPersonalizationData: Boolean(latestResultRes.data),
+      stressScore: latestResultRes.data?.stress_score ?? null,
+      organizationBalanceScore: latestResultRes.data?.balance_score ?? null,
+      mbtiCode: latestResultRes.data?.mbti_code ?? null,
+      mbtiName: latestResultRes.data?.mbti_name ?? null,
+      bigFiveScores: latestResultRes.data?.big_five_scores ?? null,
+      hobbies: (hobbiesRes.data ?? []).map((h) => h.hobby).filter(Boolean),
+      planningPreferences: userContext?.planningPreferences,
+    };
 
     const ai = new GoogleGenAI({ apiKey: geminiKey });
     const result = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       config: { systemInstruction: SYSTEM_INSTRUCTION, responseMimeType: "application/json", responseSchema },
-      contents: JSON.stringify({ message, context }, null, 2),
+      contents: JSON.stringify({ message, context, mode: mode ?? detectChatMode(message), userContext: { ...personalization, ...userContext } }, null, 2),
     });
 
     const text = result.text?.trim();
