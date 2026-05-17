@@ -80,7 +80,7 @@ export function UrgentHelpBanner() {
         }
 
         .num-icon {
-          font-size: 18px;
+          font-size: 26px;
           line-height: 1;
         }
 
