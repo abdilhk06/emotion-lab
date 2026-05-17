@@ -8,6 +8,7 @@ import { MessageInputBar } from "@/components/messages/MessageInputBar";
 import { MessagesList } from "@/components/messages/MessagesList";
 import { ModerationNote } from "@/components/messages/ModerationNote";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { fetchUnreadMessageCount, markConversationMessagesAsRead } from "@/lib/supabase/messages";
 
 type ConversationRow = {
   id: string;
@@ -102,6 +103,7 @@ export default function ConversationPage() {
   const [state, setState] = useState<ConversationState>({ status: "loading" });
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [unreadTotal, setUnreadTotal] = useState(0);
 
   useEffect(() => {
     let disposed = false;
@@ -113,6 +115,7 @@ export default function ConversationPage() {
 
       try {
         const supabase = getSupabaseClient();
+        setUnreadTotal(0);
         const {
           data: { user },
           error: authError,
@@ -172,6 +175,10 @@ export default function ConversationPage() {
           return;
         }
 
+        await markConversationMessagesAsRead(supabase, conversationId, user.id);
+        const nextUnreadTotal = await fetchUnreadMessageCount(supabase, user.id);
+        setUnreadTotal(nextUnreadTotal);
+
         const pseudo = formatPseudo(buddyRes.data?.pseudo);
 
         if (disposed) return;
@@ -209,6 +216,13 @@ export default function ConversationPage() {
                   messages: appendMessageUnique(prev.messages, toMessageViewModel(row)),
                 };
               });
+
+              if (row.sender_id !== user.id) {
+                void markConversationMessagesAsRead(supabase, conversationId, user.id)
+                  .then(() => fetchUnreadMessageCount(supabase, user.id))
+                  .then((count) => setUnreadTotal(count))
+                  .catch(() => undefined);
+              }
             }
           )
           .subscribe();
@@ -327,7 +341,7 @@ export default function ConversationPage() {
   }, [handleSend, isSending, sendError, state]);
 
   return (
-    <AppLayout title="Conversation">
+    <AppLayout title="Conversation" badges={{ messages: unreadTotal }}>
       {content}
 
       <style jsx>{`

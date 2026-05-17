@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type MouseEvent, useMemo, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarPublicUrl } from "@/lib/supabase/avatar";
 
@@ -32,10 +32,21 @@ export function UserAvatar({ name, avatarPath, imageUrl, size, className }: User
     }
   }, [avatarPath, failed, imageUrl]);
   const initials = toInitials(name);
+  const preventContextMenu = (event: MouseEvent<HTMLImageElement>) => {
+    event.preventDefault();
+  };
 
   return (
     <Avatar className={className} style={{ width: size, height: size }}>
-      {src ? <AvatarImage src={src} alt={`Avatar de ${name}`} onError={() => setFailed(true)} /> : null}
+      {src ? (
+        <AvatarImage
+          src={src}
+          alt={`Avatar de ${name}`}
+          onError={() => setFailed(true)}
+          draggable={false}
+          onContextMenu={preventContextMenu}
+        />
+      ) : null}
       <AvatarFallback>{initials}</AvatarFallback>
     </Avatar>
   );

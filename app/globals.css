@@ -48,6 +48,13 @@
     @apply flex size-full items-center justify-center rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 text-sm font-bold text-white;
   }
 
+  .avatar-image {
+    @apply aspect-square size-full;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+  }
+
   .badge {
     @apply inline-flex items-center rounded-full border border-purple-100 bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 transition-colors;
   }

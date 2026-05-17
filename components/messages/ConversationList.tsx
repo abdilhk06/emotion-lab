@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/app-layout/AppLayout";
 import { ConversationItem } from "@/components/messages/ConversationItem";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { fetchUnreadMessageCountsByConversation } from "@/lib/supabase/messages";
 
 type ConversationRow = {
   id: string;
@@ -19,6 +20,7 @@ type ConversationRow = {
 
 type MessageRow = {
   conversation_id: string;
+  sender_id: string;
   body: string;
   created_at: string;
 };
@@ -42,7 +44,7 @@ type ConversationViewModel = {
 type MessagesState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; items: ConversationViewModel[] };
+  | { status: "ready"; items: ConversationViewModel[]; unreadTotal: number };
 
 function computeOtherUserId(conversation: ConversationRow, currentUserId: string): string | null {
   const first = conversation.user_1_id ?? conversation.sender_id ?? null;
@@ -132,10 +134,11 @@ export function ConversationList() {
 
         const conversations = conversationsRes.data ?? [];
         if (conversations.length === 0) {
-          if (!disposed) setState({ status: "ready", items: [] });
+          if (!disposed) setState({ status: "ready", items: [], unreadTotal: 0 });
           return;
         }
 
+        const conversationIds = conversations.map((conversation) => conversation.id);
         const otherIds = Array.from(
           new Set(
             conversations
@@ -147,10 +150,10 @@ export function ConversationList() {
         const [messagesRes, profilesRes] = await Promise.all([
           supabase
             .from("messages")
-            .select("conversation_id, body, created_at")
+            .select("conversation_id, sender_id, body, created_at")
             .in(
               "conversation_id",
-              conversations.map((conversation) => conversation.id)
+              conversationIds
             )
             .order("created_at", { ascending: false })
             .returns<MessageRow[]>(),
@@ -162,6 +165,7 @@ export function ConversationList() {
           setState({ status: "error", message: firstError.message });
           return;
         }
+        const unreadData = await fetchUnreadMessageCountsByConversation(supabase, user.id, conversationIds);
 
         const latestMessageByConversation = new Map<string, MessageRow>();
         for (const msg of messagesRes.data ?? []) {
@@ -190,7 +194,7 @@ export function ConversationList() {
               avatarPath: profile?.avatar_path ?? null,
               preview: latestMessage?.body?.trim() || "Aucun message pour le moment.",
               lastMessageAt,
-              unreadCount: 0,
+              unreadCount: unreadData.byConversation.get(conversation.id) ?? 0,
             } satisfies ConversationViewModel;
           })
           .filter((item): item is ConversationViewModel => Boolean(item))
@@ -198,9 +202,9 @@ export function ConversationList() {
 
         if (disposed) return;
 
-        setState({ status: "ready", items });
+        setState({ status: "ready", items, unreadTotal: unreadData.total });
 
-        const conversationIds = new Set(conversations.map((conversation) => conversation.id));
+        const conversationIdSet = new Set(conversationIds);
         const channel = supabase
           .channel(`messages:list:${user.id}`)
           .on(
@@ -208,10 +212,11 @@ export function ConversationList() {
             { event: "INSERT", schema: "public", table: "messages" },
             (payload) => {
               const row = payload.new as MessageRow;
-              if (!conversationIds.has(row.conversation_id)) return;
+              if (!conversationIdSet.has(row.conversation_id)) return;
 
               setState((prev) => {
                 if (prev.status !== "ready") return prev;
+                const isUnreadForCurrentUser = row.sender_id !== user.id;
 
                 const nextItems = prev.items.map((item) =>
                   item.id === row.conversation_id
@@ -219,12 +224,14 @@ export function ConversationList() {
                         ...item,
                         preview: row.body?.trim() || "Aucun message pour le moment.",
                         lastMessageAt: row.created_at,
+                        unreadCount: isUnreadForCurrentUser ? item.unreadCount + 1 : item.unreadCount,
                       }
                     : item
                 );
 
                 return {
                   status: "ready",
+                  unreadTotal: isUnreadForCurrentUser ? prev.unreadTotal + 1 : prev.unreadTotal,
                   items: nextItems.sort(
                     (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
                   ),
@@ -314,10 +321,13 @@ export function ConversationList() {
     );
   }, [query, state]);
 
+  const unreadTotal = state.status === "ready" ? state.unreadTotal : 0;
+
   return (
-    <AppLayout title="Messagerie">
+    <AppLayout title="Messagerie" badges={{ messages: unreadTotal }}>
       <div className="messages-page">
         <h1>Messagerie</h1>
+        <p className="messages-unread">{unreadTotal > 0 ? `${unreadTotal} messages non lus` : "Aucun message non lu"}</p>
         <label className="messages-search" aria-label="Rechercher une conversation">
           <input
             type="search"
@@ -356,6 +366,13 @@ export function ConversationList() {
           border-radius: 12px;
           padding: 0 18px;
           margin-bottom: 22px;
+        }
+
+        .messages-unread {
+          margin: -10px 0 16px;
+          color: #61708a;
+          font-size: 14px;
+          font-weight: 500;
         }
 
         .messages-search::before {

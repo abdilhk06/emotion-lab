@@ -10,6 +10,7 @@ import { DashboardTile } from "@/components/dashboard/DashboardTile";
 import { GoalCard } from "@/components/dashboard/GoalCard";
 import { SuggestionBanner } from "@/components/dashboard/SuggestionBanner";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { fetchUnreadMessageCount, fetchUserConversationIds } from "@/lib/supabase/messages";
 
 type ProfileRow = {
   id: string;
@@ -42,10 +43,6 @@ type DashboardState =
   | { status: "ready"; data: DashboardData }
   | { status: "empty"; data: DashboardData; reasons: Array<"profile" | "result"> };
 
-function pairFilter(userId: string): string {
-  return `sender_id.eq.${userId},receiver_id.eq.${userId}`;
-}
-
 function countOrZero(count: number | null): number {
   return count ?? 0;
 }
@@ -76,7 +73,7 @@ export default function DashboardPage() {
           return;
         }
 
-        const [profileRes, resultRes, conversationsRes, pendingRequestsRes] = await Promise.all([
+        const [profileRes, resultRes, pendingRequestsRes, conversationIds] = await Promise.all([
           supabase.from("profiles").select("id, pseudo, study_level, avatar_path").eq("id", user.id).maybeSingle<ProfileRow>(),
           supabase
             .from("test_results")
@@ -85,43 +82,28 @@ export default function DashboardPage() {
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle<TestResultRow>(),
-          supabase.from("conversations").select("id", { count: "exact" }).or(pairFilter(user.id)),
           supabase
             .from("buddy_requests")
             .select("*", { count: "exact", head: true })
             .eq("receiver_id", user.id)
             .eq("status", "pending"),
+          fetchUserConversationIds(supabase, user.id),
         ]);
 
         const profile = profileRes.data;
         const result = resultRes.data;
 
-        if (profileRes.error || resultRes.error || conversationsRes.error || pendingRequestsRes.error) {
+        if (profileRes.error || resultRes.error || pendingRequestsRes.error) {
           const message =
             profileRes.error?.message ??
             resultRes.error?.message ??
-            conversationsRes.error?.message ??
             pendingRequestsRes.error?.message ??
             "Impossible de charger ton dashboard.";
           setState({ status: "error", message });
           return;
         }
 
-        const conversationIds = (conversationsRes.data ?? []).map((conversation) => conversation.id);
-        const unreadRes =
-          conversationIds.length > 0
-            ? await supabase
-                .from("messages")
-                .select("*", { count: "exact", head: true })
-                .in("conversation_id", conversationIds)
-                .neq("sender_id", user.id)
-                .is("read_at", null)
-            : { count: 0, error: null };
-
-        if (unreadRes.error) {
-          setState({ status: "error", message: unreadRes.error.message });
-          return;
-        }
+        const unreadCount = await fetchUnreadMessageCount(supabase, user.id, conversationIds);
 
         const data: DashboardData = {
           pseudo: displayName(profile, user.email),
@@ -130,8 +112,8 @@ export default function DashboardPage() {
           school: profile?.study_level?.trim() || "Niveau non precise",
           avatarPath: profile?.avatar_path ?? null,
           hasResult: Boolean(result),
-          buddiesCount: countOrZero(conversationsRes.count),
-          unreadMessages: countOrZero(unreadRes.count),
+          buddiesCount: conversationIds.length,
+          unreadMessages: unreadCount,
           pendingRequests: countOrZero(pendingRequestsRes.count),
         };
 
