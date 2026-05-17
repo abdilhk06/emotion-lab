@@ -217,7 +217,7 @@ function toBuddySuggestion(params: {
 
   return {
     id: params.profile.id,
-    handle: `@${params.profile.pseudo?.trim().replace(/^@+/, "") || "buddy"}`,
+    handle: params.profile.pseudo?.trim().replace(/^@+/, "") || "buddy",
     initials: initialsFromPseudo(params.profile.pseudo),
     mbti: params.buddyMbti ?? "MBTI",
     level: params.profile.study_level?.trim() || "Niveau non renseigne",
@@ -518,6 +518,7 @@ export default function TestResultsPage() {
                       )) : <span>Aucun hobby commun</span>}
                     </div>
                     <button
+                      className="buddy-cta-btn"
                       type="button"
                       disabled={relationshipByBuddyId[buddy.id]?.status === "pending_sent" || relationshipByBuddyId[buddy.id]?.status === "pending_received"}
                       onClick={() => void onBuddyPrimaryAction(buddy.id)}
@@ -771,16 +772,17 @@ export default function TestResultsPage() {
         .buddies-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
         .buddy-card { position: relative; padding: 20px; min-height: 255px; }
         .compat { position: absolute; top: 16px; right: 18px; background: #effff5; color: #43c181; font-size: 13px; font-weight: 800; padding: 5px 11px; border-radius: 999px; }
-        .buddy-head { display: flex; align-items: center; gap: 13px; margin-bottom: 24px; padding-right: 52px; }
-        .buddy-head-link { width: calc(100% - 52px); background: transparent; border: 0; text-align: left; cursor: pointer; padding: 0; }
+        .buddy-head { display: flex; align-items: center; gap: 13px; margin-bottom: 24px; padding-right: 84px; }
+        .buddy-head-link { width: 100%; background: transparent; border: 0; text-align: left; cursor: pointer; padding: 0; appearance: none; }
         .avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #8b4d73, #4f94bd); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; }
-        .buddy-head h3 { margin: 0 0 2px; font-size: 20px; font-weight: 800; color: #071238; }
-        .buddy-head p { margin: 0; font-size: 13px; color: #607399; }
+        .buddy-head h3 { margin: 0 0 2px; font-size: 20px; font-weight: 800; color: #071238; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+        .buddy-head p { margin: 0; font-size: 13px; color: #607399; overflow-wrap: anywhere; }
+        .buddy-head > div:last-child { min-width: 0; flex: 1; }
         .quote { min-height: 54px; margin: 0 0 16px; color: #26395d; font-size: 14px; font-style: italic; line-height: 1.55; }
         .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
         .chips span { display: inline-flex; align-items: center; padding: 6px 11px; border-radius: 999px; background: #f3eef6; color: #43516b; font-size: 12px; line-height: 1; }
-        .buddy-card button { width: 100%; height: 42px; border: 0; border-radius: 10px; background: #7e3d5e; color: #fff; font-weight: 800; cursor: pointer; }
-        .buddy-card button:disabled { opacity: 0.72; cursor: default; }
+        .buddy-cta-btn { width: 100%; height: 42px; border: 0; border-radius: 10px; background: #7e3d5e; color: #fff; font-weight: 800; cursor: pointer; }
+        .buddy-cta-btn:disabled { opacity: 0.72; cursor: default; }
         .results-empty-inline {
           margin: 0;
           color: var(--texte-gris);
