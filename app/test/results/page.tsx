@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/app-layout/AppLayout";
 import { computeBuddyCompatibilityScore } from "@/lib/compatibility";
+import { findOrCreateConversationBetweenUsers } from "@/lib/supabase/conversations";
 import { BigFiveRadar } from "@/components/results/BigFiveRadar";
 import type { BuddySuggestion } from "@/components/results/BuddySuggestionCard";
 import { MBTIAxes, type MBTIAxisItem } from "@/components/results/MBTIAxes";
@@ -58,6 +59,23 @@ type BuddyResultRow = {
   user_id: string;
   mbti_code: string | null;
   created_at: string;
+};
+
+type BuddyRequestRow = {
+  sender_id: string;
+  receiver_id: string;
+  status: "pending" | "accepted" | "rejected" | "cancelled";
+};
+
+type ConversationRow = {
+  id: string;
+  user_1_id: string | null;
+  user_2_id: string | null;
+};
+
+type BuddyRelationship = {
+  status: "none" | "pending_sent" | "pending_received" | "accepted";
+  conversationId: string | null;
 };
 
 const MBTI_EXPLANATIONS: Record<string, string> = {
@@ -264,6 +282,7 @@ async function loadBuddySuggestions(userId: string, result: StoredResult): Promi
 export default function TestResultsPage() {
   const router = useRouter();
   const [state, setState] = useState<ResultState>({ status: "loading" });
+  const [relationshipByBuddyId, setRelationshipByBuddyId] = useState<Record<string, BuddyRelationship>>({});
 
   useEffect(() => {
     const run = async () => {
@@ -331,8 +350,11 @@ export default function TestResultsPage() {
             profile: profileRes.data ?? { pseudo: null, study_level: null, bio: null, looking_for: null },
             hobbies: (hobbiesRes.data ?? []).map((row) => row.hobby).filter(Boolean).sort((a, b) => a.localeCompare(b, "fr")),
           });
+          const relationships = await loadBuddyRelationships(user.id, buddies.map((item) => item.id));
+          setRelationshipByBuddyId(relationships);
         } catch {
           setState({ status: "ready", result: safeResult, buddies: [], profile: { pseudo: null, study_level: null, bio: null, looking_for: null }, hobbies: [] });
+          setRelationshipByBuddyId({});
         }
       } catch (error) {
         if (fallback) {
@@ -419,6 +441,29 @@ export default function TestResultsPage() {
   const buddies = state.buddies;
   const pdfData = buildPdfData(result, state.profile, state.hobbies);
   const pdfFileName = `emotion-lab-resultats-${sanitizePdfFilenamePart(state.profile.pseudo)}.pdf`;
+  const onOpenBuddyProfile = (buddyId: string) => router.push(`/buddies/${buddyId}`);
+  const onBuddyPrimaryAction = async (buddyId: string) => {
+    const relation = relationshipByBuddyId[buddyId];
+    const supabase = getSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    if (relation?.status === "pending_sent" || relation?.status === "pending_received") return;
+    if (relation?.status === "accepted") {
+      const conversationId = relation.conversationId ?? (await findOrCreateConversationBetweenUsers(supabase, user.id, buddyId));
+      router.push(`/messages/${conversationId}`);
+      return;
+    }
+    const insertRes = await supabase.from("buddy_requests").insert({
+      sender_id: user.id,
+      receiver_id: buddyId,
+      message: null,
+      status: "pending",
+    });
+    if (insertRes.error) return;
+    setRelationshipByBuddyId((prev) => ({ ...prev, [buddyId]: { status: "pending_sent", conversationId: prev[buddyId]?.conversationId ?? null } }));
+  };
 
   return (
     <AppLayout title="Mes resultats">
@@ -459,20 +504,32 @@ export default function TestResultsPage() {
                 {buddies.length > 0 ? buddies.map((buddy) => (
                   <article className="buddy-card" key={buddy.id}>
                     <span className="compat">{buddy.compatibility}%</span>
-                    <div className="buddy-head">
+                    <button type="button" className="buddy-head buddy-head-link" onClick={() => onOpenBuddyProfile(buddy.id)}>
                       <div className="avatar">{buddy.initials}</div>
                       <div>
                         <h3>{buddy.handle}</h3>
                         <p>{buddy.mbti} · {buddy.level}</p>
                       </div>
-                    </div>
+                    </button>
                     <p className="quote">« {buddy.tagline} »</p>
                     <div className="chips">
                       {buddy.interests.length > 0 ? buddy.interests.map((interest) => (
                         <span key={`${buddy.id}-${interest}`}>{interest}</span>
                       )) : <span>Aucun hobby commun</span>}
                     </div>
-                    <button type="button">Envoyer une demande</button>
+                    <button
+                      type="button"
+                      disabled={relationshipByBuddyId[buddy.id]?.status === "pending_sent" || relationshipByBuddyId[buddy.id]?.status === "pending_received"}
+                      onClick={() => void onBuddyPrimaryAction(buddy.id)}
+                    >
+                      {relationshipByBuddyId[buddy.id]?.status === "accepted"
+                        ? "Envoyer un message"
+                        : relationshipByBuddyId[buddy.id]?.status === "pending_sent"
+                          ? "Demande envoyee"
+                          : relationshipByBuddyId[buddy.id]?.status === "pending_received"
+                            ? "Demande recue"
+                            : "Envoyer une demande"}
+                    </button>
                   </article>
                 )) : <p className="results-empty-inline">Aucun buddy suggere pour le moment.</p>}
               </div>
@@ -715,6 +772,7 @@ export default function TestResultsPage() {
         .buddy-card { position: relative; padding: 20px; min-height: 255px; }
         .compat { position: absolute; top: 16px; right: 18px; background: #effff5; color: #43c181; font-size: 13px; font-weight: 800; padding: 5px 11px; border-radius: 999px; }
         .buddy-head { display: flex; align-items: center; gap: 13px; margin-bottom: 24px; padding-right: 52px; }
+        .buddy-head-link { width: calc(100% - 52px); background: transparent; border: 0; text-align: left; cursor: pointer; padding: 0; }
         .avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #8b4d73, #4f94bd); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; }
         .buddy-head h3 { margin: 0 0 2px; font-size: 20px; font-weight: 800; color: #071238; }
         .buddy-head p { margin: 0; font-size: 13px; color: #607399; }
@@ -722,6 +780,7 @@ export default function TestResultsPage() {
         .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
         .chips span { display: inline-flex; align-items: center; padding: 6px 11px; border-radius: 999px; background: #f3eef6; color: #43516b; font-size: 12px; line-height: 1; }
         .buddy-card button { width: 100%; height: 42px; border: 0; border-radius: 10px; background: #7e3d5e; color: #fff; font-weight: 800; cursor: pointer; }
+        .buddy-card button:disabled { opacity: 0.72; cursor: default; }
         .results-empty-inline {
           margin: 0;
           color: var(--texte-gris);
@@ -744,5 +803,47 @@ export default function TestResultsPage() {
     </main>
     </AppLayout>
   );
+}
+
+async function loadBuddyRelationships(userId: string, buddyIds: string[]): Promise<Record<string, BuddyRelationship>> {
+  if (buddyIds.length === 0) return {};
+  const supabase = getSupabaseClient();
+  const [requestsRes, conversationsRes] = await Promise.all([
+    supabase
+      .from("buddy_requests")
+      .select("sender_id,receiver_id,status")
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+      .in("status", ["pending", "accepted"])
+      .returns<BuddyRequestRow[]>(),
+    supabase
+      .from("conversations")
+      .select("id,user_1_id,user_2_id")
+      .or(`user_1_id.eq.${userId},user_2_id.eq.${userId}`)
+      .returns<ConversationRow[]>(),
+  ]);
+  if (requestsRes.error) throw new Error(requestsRes.error.message);
+  if (conversationsRes.error) throw new Error(conversationsRes.error.message);
+
+  const buddySet = new Set(buddyIds);
+  const relationships: Record<string, BuddyRelationship> = {};
+  for (const buddyId of buddyIds) relationships[buddyId] = { status: "none", conversationId: null };
+
+  for (const row of requestsRes.data ?? []) {
+    const otherId = row.sender_id === userId ? row.receiver_id : row.sender_id;
+    if (!buddySet.has(otherId)) continue;
+    if (row.status === "accepted") relationships[otherId].status = "accepted";
+    if (row.status === "pending" && relationships[otherId].status !== "accepted") {
+      relationships[otherId].status = row.sender_id === userId ? "pending_sent" : "pending_received";
+    }
+  }
+
+  for (const row of conversationsRes.data ?? []) {
+    const otherId = row.user_1_id === userId ? row.user_2_id : row.user_1_id;
+    if (!otherId || !buddySet.has(otherId)) continue;
+    relationships[otherId].conversationId = row.id;
+    if (relationships[otherId].status === "none") relationships[otherId].status = "accepted";
+  }
+
+  return relationships;
 }
 
