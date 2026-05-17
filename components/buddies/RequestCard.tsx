@@ -1,5 +1,6 @@
 import { RequestActions } from "@/components/buddies/RequestActions";
 import { ProfileLink } from "@/components/ui/ProfileLink";
+import { UserCard } from "@/components/ui/UserCard";
 
 export type RequestStatus = "pending" | "accepted" | "rejected";
 
@@ -13,6 +14,7 @@ export type BuddyRequestItem = {
   createdAt: string;
   profile: {
     pseudo: string;
+    mbti?: string;
     studyLevel: string;
   };
 };
@@ -27,14 +29,6 @@ type RequestCardProps = {
   onReject: (requestId: string) => void;
 };
 
-function getInitials(pseudo: string): string {
-  const raw = pseudo.replace(/^@/, "").trim();
-  if (!raw) return "?";
-  const chunks = raw.split(/[\s._-]+/).filter(Boolean);
-  const initials = chunks.slice(0, 2).map((chunk) => chunk[0]?.toUpperCase() ?? "").join("");
-  return initials || raw.slice(0, 2).toUpperCase();
-}
-
 function formatDateLabel(dateValue: string): string {
   const dt = new Date(dateValue);
   if (Number.isNaN(dt.getTime())) return "Date inconnue";
@@ -46,25 +40,31 @@ function formatDateLabel(dateValue: string): string {
 }
 
 export function RequestCard({ item, mode, busyAction, disabled, successMessage, onAccept, onReject }: RequestCardProps) {
-  const initials = getInitials(item.profile.pseudo);
   const canAct = mode === "received" && item.status === "pending";
   const identityContent = (
-    <>
-      <div className="req-avatar" aria-hidden="true">{initials}</div>
-      <div className="req-info">
-        <h3>{item.profile.pseudo}</h3>
-        <span className="req-meta">MBTI · {item.profile.studyLevel} · 82% compat</span>
-      </div>
-      <span className="req-profile-pill" aria-hidden="true">Profil</span>
-    </>
+    <div className="flex items-center justify-between w-full">
+      <UserCard
+        profileId={item.profileId ?? undefined}
+        username={item.profile.pseudo}
+        mbti={item.profile.mbti}
+        level={item.profile.studyLevel}
+      />
+      <ProfileLink
+        profileId={item.profileId}
+        username={item.profile.pseudo}
+        className="ml-3 shrink-0"
+      >
+        <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition-colors">
+          Profil →
+        </span>
+      </ProfileLink>
+    </div>
   );
 
   return (
     <article className="request-card">
       <div className="req-header">
-        <ProfileLink profileId={item.profileId} username={item.profile.pseudo} className="req-identity-link">
-          {identityContent}
-        </ProfileLink>
+        {identityContent}
         <span className="req-time">{formatDateLabel(item.createdAt)}</span>
       </div>
 

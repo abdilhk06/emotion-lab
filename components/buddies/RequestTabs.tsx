@@ -39,7 +39,7 @@ function normalizeRequest(row: BuddyRequestRow, mode: ViewTab): BuddyRequestItem
   const sourceProfile = mode === "received" ? row.sender_profile : row.receiver_profile;
   const profileId = mode === "received" ? row.sender_id : row.receiver_id;
   const pseudoRaw = sourceProfile?.pseudo?.trim();
-  const pseudo = pseudoRaw ? (pseudoRaw.startsWith("@") ? pseudoRaw : `@${pseudoRaw}`) : "@buddy";
+  const pseudo = pseudoRaw ? pseudoRaw.replace(/^@+/, "") : "buddy";
 
   return {
     id: row.id,
