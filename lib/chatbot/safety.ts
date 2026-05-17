@@ -20,6 +20,10 @@ export function isCrisisMessage(input: string): boolean {
   return CRISIS_PATTERNS.some((pattern) => pattern.test(text));
 }
 
+export function containsSafetyKeyword(input: string): boolean {
+  return isCrisisMessage(input);
+}
+
 export function detectChatMode(input: string): "emotional_support" | "planning" | "hybrid" {
   const text = input.toLowerCase();
   const planningHits = /(plan|todo|to-do|schedule|r[eé]vision|r[eé]viser|deadline|organis|checklist|priorit|t[aâ]che)/i.test(text);
