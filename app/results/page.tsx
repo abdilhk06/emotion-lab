@@ -1,14 +1,24 @@
 "use client";
 
+import { PDFDownloadLink } from "@react-pdf/renderer";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/app-layout/AppLayout";
+import { ResultPdfDocument, type ResultPdfData } from "@/components/results/ResultPdfDocument";
 import type { BigFiveScores } from "@/lib/calculate-result";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
 type ProfileRow = {
   id: string;
+  pseudo: string | null;
+  study_level: string | null;
+  bio: string | null;
+  looking_for: string | null;
+};
+
+type HobbyRow = {
+  hobby: string;
 };
 
 type ResultRow = {
@@ -29,12 +39,19 @@ type StoredResult = {
   created_at: string;
 };
 
+type StoredProfile = {
+  pseudo: string | null;
+  study_level: string | null;
+  bio: string | null;
+  looking_for: string | null;
+};
+
 type ResultsState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "no-profile" }
   | { status: "no-result" }
-  | { status: "ready"; result: StoredResult };
+  | { status: "ready"; result: StoredResult; profile: StoredProfile; hobbies: string[] };
 
 type CardTone = "plum" | "blue" | "orange" | "green";
 
@@ -65,6 +82,25 @@ function formatResultDate(value: string): string {
     month: "long",
     year: "numeric",
   }).format(date);
+}
+
+function normalizeOptional(value: string | null | undefined): string | null {
+  const clean = value?.trim();
+  return clean ? clean : null;
+}
+
+function sortHobbies(hobbies: string[]): string[] {
+  return [...hobbies].sort((a, b) => a.localeCompare(b, "fr"));
+}
+
+function sanitizePdfFilenamePart(value: string | null | undefined): string {
+  const clean = value?.trim().replace(/^@+/, "") || "profil";
+  return clean
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase() || "profil";
 }
 
 function stressStatus(value: number) {
@@ -142,6 +178,47 @@ function buildCards(result: StoredResult): ResultCard[] {
   ];
 }
 
+function buildPdfData(result: StoredResult, profile: StoredProfile, hobbies: string[]): ResultPdfData {
+  return {
+    generatedAt: new Date().toISOString(),
+    profile: {
+      pseudo: normalizeOptional(profile.pseudo),
+      studyLevel: normalizeOptional(profile.study_level),
+      bio: normalizeOptional(profile.bio),
+      lookingFor: normalizeOptional(profile.looking_for),
+    },
+    hobbies,
+    result: {
+      mbtiCode: result.mbti_code,
+      mbtiName: result.mbti_name,
+      bigFiveScores: result.big_five_scores,
+      stressScore: result.stress_score,
+      balanceScore: result.balance_score,
+      createdAt: result.created_at,
+    },
+  };
+}
+
+function ResultPdfLink({
+  className,
+  data,
+  fileName,
+  children,
+  loadingLabel = "Préparation du PDF...",
+}: {
+  className: string;
+  data: ResultPdfData;
+  fileName: string;
+  children: string;
+  loadingLabel?: string;
+}) {
+  return (
+    <PDFDownloadLink className={className} document={<ResultPdfDocument data={data} />} fileName={fileName}>
+      {({ loading }) => (loading ? loadingLabel : children)}
+    </PDFDownloadLink>
+  );
+}
+
 export default function ResultsPage() {
   const router = useRouter();
   const [state, setState] = useState<ResultsState>({ status: "loading" });
@@ -159,8 +236,13 @@ export default function ResultsPage() {
           return;
         }
 
-        const [profileRes, latestResultRes] = await Promise.all([
-          supabase.from("profiles").select("id").eq("id", user.id).maybeSingle<ProfileRow>(),
+        const [profileRes, hobbiesRes, latestResultRes] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("id, pseudo, study_level, bio, looking_for")
+            .eq("id", user.id)
+            .maybeSingle<ProfileRow>(),
+          supabase.from("user_hobbies").select("hobby").eq("user_id", user.id).returns<HobbyRow[]>(),
           supabase
             .from("test_results")
             .select("mbti_code, mbti_name, big_five_scores, stress_score, balance_score, created_at")
@@ -170,7 +252,7 @@ export default function ResultsPage() {
             .maybeSingle<ResultRow>(),
         ]);
 
-        const firstError = profileRes.error ?? latestResultRes.error;
+        const firstError = profileRes.error ?? hobbiesRes.error ?? latestResultRes.error;
         if (firstError) {
           setState({ status: "error", message: firstError.message });
           return;
@@ -189,6 +271,13 @@ export default function ResultsPage() {
 
         setState({
           status: "ready",
+          profile: {
+            pseudo: normalizeOptional(profileRes.data.pseudo),
+            study_level: normalizeOptional(profileRes.data.study_level),
+            bio: normalizeOptional(profileRes.data.bio),
+            looking_for: normalizeOptional(profileRes.data.looking_for),
+          },
+          hobbies: sortHobbies((hobbiesRes.data ?? []).map((item) => item.hobby).filter(Boolean)),
           result: {
             mbti_code: row.mbti_code,
             mbti_name: row.mbti_name,
@@ -218,9 +307,11 @@ export default function ResultsPage() {
     if (state.status === "no-profile") return <StateCard title="Profil introuvable" text="Complete ton profil pour afficher tes resultats connectes." primaryHref="/profile" primaryLabel="Completer mon profil" />;
     if (state.status === "no-result") return <StateCard title="Aucun test complete" text="Passe le test pour generer ton profil Emotion Lab." primaryHref="/test/intro" primaryLabel="Demarrer le test" />;
 
-    const { result } = state;
+    const { result, profile, hobbies } = state;
     const cards = buildCards(result);
     const dateLabel = formatResultDate(result.created_at);
+    const pdfData = buildPdfData(result, profile, hobbies);
+    const pdfFileName = `emotion-lab-resultats-${sanitizePdfFilenamePart(profile.pseudo)}.pdf`;
 
     return (
       <main className="results-page">
@@ -241,9 +332,9 @@ export default function ResultsPage() {
             <h3>{result.mbti_name}</h3>
             <p>Passé le {dateLabel}</p>
           </div>
-          <button className="pdf-small" type="button">
+          <ResultPdfLink className="pdf-small" data={pdfData} fileName={pdfFileName}>
             PDF
-          </button>
+          </ResultPdfLink>
         </section>
 
         <section className="cards-grid" aria-label="Scores principaux">
@@ -261,9 +352,9 @@ export default function ResultsPage() {
         </section>
 
         <div className="actions">
-          <button className="btn btn-primary" type="button">
+          <ResultPdfLink className="btn btn-primary" data={pdfData} fileName={pdfFileName}>
             Télécharger en PDF
-          </button>
+          </ResultPdfLink>
           <Link className="btn btn-outline" href="/test/intro">
             Repasser le test
           </Link>
@@ -359,6 +450,9 @@ export default function ResultsPage() {
           font-size: 12px;
         }
         .pdf-small {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           width: 68px;
           height: 44px;
           border: 1px solid rgba(255, 255, 255, 0.35);
@@ -368,6 +462,7 @@ export default function ResultsPage() {
           cursor: pointer;
           font-size: 13px;
           font-weight: 700;
+          text-decoration: none;
         }
         .cards-grid {
           display: grid;
