@@ -223,9 +223,30 @@ h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; line-height: 1.2; }
 .feature-2 .feature-icon { background: var(--bleu-pale); }
 .feature-3 .feature-icon { background: var(--fond-lavande); }
 .team-section { padding: 60px 24px; background: var(--fond-lavande); }
-.team-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 900px; margin: 30px auto 0; }
+.team-grid { display: flex; justify-content: center; gap: 40px; max-width: 900px; margin: 30px auto 0; }
 .team-member { text-align: center; }
-.team-avatar { width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 10px; background: var(--gradient-signature); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Poppins'; font-weight: 700; font-size: 24px; }
+.team-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #8b4e6e;
+  box-shadow: 0 4px 20px rgba(139, 78, 110, 0.25);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  margin: 0 auto 10px;
+}
+.team-avatar:hover {
+  transform: scale(1.06);
+  box-shadow: 0 8px 28px rgba(139, 78, 110, 0.35);
+}
+.team-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+.team-name { font-weight: 600; font-size: 0.95rem; color: #2d2d2d; }
+.team-role { font-size: 0.8rem; color: #8b4e6e; font-style: italic; margin-top: 2px; }
 .cta-final { padding: 70px 24px; text-align: center; background: var(--gradient-signature); color: #fff; }
 .cta-final h2 { color: #fff; }
 .cta-final .btn { background: #fff; color: var(--plum); }
@@ -258,7 +279,7 @@ h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; line-height: 1.2; }
   .stats-bar { grid-template-columns: repeat(4, 1fr); padding: 50px 40px; }
   .stat-number { font-size: 52px; }
   .features-grid { grid-template-columns: repeat(3, 1fr); }
-  .team-grid { grid-template-columns: repeat(5, 1fr); }
+  .team-grid { flex-wrap: nowrap; }
   .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; }
   .auth-layout { grid-template-columns: 5fr 6fr; }
   .auth-visual { display: flex; flex-direction: column; justify-content: space-between; }
@@ -357,6 +378,14 @@ h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; line-height: 1.2; }
   .app-main-content { max-width: none; }
   .chatbot-page-frame { min-height: auto; width: calc(100% + 32px); margin: -22px -16px; }
   .dashboard-grid, .dash-grid, .dash-bottom-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 639px) {
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-items: center;
+  }
 }
 
 @media (max-width: 640px) {
