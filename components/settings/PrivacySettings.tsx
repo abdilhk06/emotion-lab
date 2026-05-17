@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 type PrivacySettingsProps = {
   isVisible: boolean;
   onVisibilityChange: (value: boolean) => void;
@@ -39,9 +41,9 @@ export function PrivacySettings({ isVisible, onVisibilityChange, saving }: Priva
           <h3>Politique de confidentialite</h3>
           <p>Consulte notre engagement sur tes donnees.</p>
         </div>
-        <a className="btn btn-tertiary settings-btn-sm" href="/resources">
+        <Link className="btn btn-tertiary settings-btn-sm" href="/resources">
           Lire
-        </a>
+        </Link>
       </div>
     </section>
   );

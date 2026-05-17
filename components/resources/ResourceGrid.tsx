@@ -9,6 +9,13 @@ type ResourceGridProps = {
 
 const ALL_CATEGORY = "Tous";
 
+function normalizeSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 export function ResourceGrid({ resources }: ResourceGridProps) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState(ALL_CATEGORY);
@@ -18,7 +25,7 @@ export function ResourceGrid({ resources }: ResourceGridProps) {
   }, [resources]);
 
   const filteredResources = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = normalizeSearch(query.trim());
 
     return resources.filter((resource) => {
       const matchesCategory = activeCategory === ALL_CATEGORY || resource.category === activeCategory;
@@ -31,7 +38,7 @@ export function ResourceGrid({ resources }: ResourceGridProps) {
         return true;
       }
 
-      const haystack = [resource.title, resource.category, resource.description].join(" ").toLowerCase();
+      const haystack = normalizeSearch([resource.title, resource.category, resource.description, resource.type].join(" "));
       return haystack.includes(normalizedQuery);
     });
   }, [activeCategory, query, resources]);
@@ -46,11 +53,11 @@ export function ResourceGrid({ resources }: ResourceGridProps) {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Titre, categorie ou contenu"
+            placeholder="Titre, catégorie ou contenu"
           />
         </label>
 
-        <div className="chips-row" role="listbox" aria-label="Filtrer par categorie">
+        <div className="chips-row" role="listbox" aria-label="Filtrer par catégorie">
           {categories.map((category) => {
             const selected = category === activeCategory;
 
@@ -78,8 +85,8 @@ export function ResourceGrid({ resources }: ResourceGridProps) {
         </div>
       ) : (
         <div className="empty-state" role="status" aria-live="polite">
-          <h3>Aucune ressource ne correspond a ta recherche</h3>
-          <p>Essaie un autre mot-cle ou change de categorie. On ajoute progressivement de nouvelles ressources.</p>
+          <h3>Aucune ressource ne correspond à ta recherche</h3>
+          <p>Essaie un autre mot-clé ou change de catégorie. On ajoute progressivement de nouvelles ressources.</p>
         </div>
       )}
 

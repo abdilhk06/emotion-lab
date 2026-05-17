@@ -2,6 +2,7 @@ import Link from "next/link";
 
 export type Resource = {
   id: string;
+  slug: string;
   icon: string;
   title: string;
   category: string;
@@ -9,7 +10,6 @@ export type Resource = {
   duration: string;
   description: string;
   ctaLabel: string;
-  href: string;
 };
 
 export function ResourceCard({ resource }: { resource: Resource }) {
@@ -27,7 +27,7 @@ export function ResourceCard({ resource }: { resource: Resource }) {
           <span aria-hidden="true">•</span>
           <span>{resource.duration}</span>
         </p>
-        <Link className="resource-cta" href={resource.href}>
+        <Link className="resource-cta" href={`/resources/${resource.slug}`}>
           {resource.ctaLabel}
         </Link>
       </div>
