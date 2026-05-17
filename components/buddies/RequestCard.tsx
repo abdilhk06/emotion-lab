@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { RequestActions } from "@/components/buddies/RequestActions";
 
 export type RequestStatus = "pending" | "accepted" | "rejected";
@@ -6,6 +7,7 @@ export type BuddyRequestItem = {
   id: string;
   senderId: string;
   receiverId: string;
+  profileId: string | null;
   message: string | null;
   status: RequestStatus;
   createdAt: string;
@@ -46,15 +48,28 @@ function formatDateLabel(dateValue: string): string {
 export function RequestCard({ item, mode, busyAction, disabled, successMessage, onAccept, onReject }: RequestCardProps) {
   const initials = getInitials(item.profile.pseudo);
   const canAct = mode === "received" && item.status === "pending";
+  const profileHref = item.profileId ? `/buddies/${item.profileId}` : null;
+  const profileLabel = `Voir le profil de ${item.profile.pseudo}`;
+  const identityContent = (
+    <>
+      <div className="req-avatar" aria-hidden="true">{initials}</div>
+      <div className="req-info">
+        <h3>{item.profile.pseudo}</h3>
+        <span className="req-meta">MBTI · {item.profile.studyLevel} · 82% compat</span>
+      </div>
+    </>
+  );
 
   return (
     <article className="request-card">
       <div className="req-header">
-        <div className="req-avatar" aria-hidden="true">{initials}</div>
-        <div className="req-info">
-          <h3>{item.profile.pseudo}</h3>
-          <span className="req-meta">MBTI · {item.profile.studyLevel} · 82% compat</span>
-        </div>
+        {profileHref ? (
+          <Link className="req-identity-link" href={profileHref} aria-label={profileLabel} title={profileLabel}>
+            {identityContent}
+          </Link>
+        ) : (
+          <div className="req-identity-static">{identityContent}</div>
+        )}
         <span className="req-time">{formatDateLabel(item.createdAt)}</span>
       </div>
 
@@ -82,6 +97,27 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
           display: flex;
           align-items: center;
           gap: 14px;
+        }
+        .req-identity-link,
+        .req-identity-static {
+          min-width: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 14px;
+          color: inherit;
+          text-decoration: none;
+        }
+        .req-identity-link {
+          border-radius: 999px 12px 12px 999px;
+        }
+        .req-identity-link:hover h3,
+        .req-identity-link:focus-visible h3 {
+          color: #8a3b65;
+          text-decoration: underline;
+        }
+        .req-identity-link:focus-visible {
+          outline: 3px solid rgba(138, 59, 101, 0.25);
+          outline-offset: 4px;
         }
         .req-avatar {
           width: 46px;
