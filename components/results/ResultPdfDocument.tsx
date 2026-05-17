@@ -36,40 +36,46 @@ const COLORS = {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 28,
+    paddingTop: 28,
+    paddingHorizontal: 28,
+    paddingBottom: 48,
     backgroundColor: "#FFFCFF",
     color: COLORS.text,
     fontFamily: "Helvetica",
     fontSize: 9.5,
-    lineHeight: 1.35,
+    lineHeight: 1.32,
   },
   cover: {
-    padding: 22,
+    paddingVertical: 20,
+    paddingHorizontal: 22,
     borderRadius: 16,
     backgroundColor: COLORS.plum,
     color: "#FFFFFF",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   brand: {
     fontSize: 11,
     fontWeight: 700,
     textTransform: "uppercase",
     letterSpacing: 1.2,
-    marginBottom: 20,
+    marginBottom: 14,
+    lineHeight: 1.15,
   },
   title: {
-    fontSize: 26,
+    fontSize: 23,
     fontWeight: 700,
-    marginBottom: 8,
+    lineHeight: 1.15,
+    marginBottom: 9,
   },
   subtitle: {
     fontSize: 11,
     color: "#F6EAF2",
+    lineHeight: 1.35,
   },
   metaGrid: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 18,
+    marginTop: 15,
   },
   metaCard: {
     flex: 1,
@@ -88,12 +94,12 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   section: {
-    padding: 13,
+    padding: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.card,
-    marginBottom: 10,
+    marginBottom: 9,
   },
   sectionTint: {
     backgroundColor: COLORS.lavender,
@@ -103,6 +109,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     color: COLORS.plum,
     marginBottom: 8,
+    lineHeight: 1.2,
   },
   profileGrid: {
     flexDirection: "row",
@@ -116,15 +123,18 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     textTransform: "uppercase",
     marginBottom: 2,
+    lineHeight: 1.2,
   },
   value: {
     fontSize: 10,
     fontWeight: 700,
     marginBottom: 7,
+    lineHeight: 1.25,
   },
   paragraph: {
     color: "#2D3B59",
     marginBottom: 5,
+    lineHeight: 1.32,
   },
   chips: {
     flexDirection: "row",
@@ -157,6 +167,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     textAlign: "center",
     paddingTop: 15,
+    lineHeight: 1,
   },
   mbtiText: {
     flex: 1,
@@ -166,15 +177,18 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     color: COLORS.text,
     marginBottom: 5,
+    lineHeight: 1.2,
   },
   scoresGrid: {
+    gap: 6,
+  },
+  scorePair: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
   },
   scoreCard: {
-    width: "48.7%",
-    padding: 9,
+    flex: 1,
+    padding: 7,
     borderRadius: 10,
     backgroundColor: COLORS.lavender,
   },
@@ -186,19 +200,21 @@ const styles = StyleSheet.create({
   scoreName: {
     fontSize: 8.5,
     fontWeight: 700,
+    lineHeight: 1.15,
   },
   scoreValue: {
     fontSize: 10,
     fontWeight: 700,
     color: COLORS.plum,
+    lineHeight: 1.15,
   },
   track: {
-    height: 5,
+    height: 4,
     borderRadius: 999,
     backgroundColor: COLORS.lavenderDark,
   },
   fill: {
-    height: 5,
+    height: 4,
     borderRadius: 999,
     backgroundColor: COLORS.plum,
   },
@@ -233,6 +249,7 @@ const styles = StyleSheet.create({
   bulletText: {
     flex: 1,
     color: "#2D3B59",
+    lineHeight: 1.3,
   },
   recommendation: {
     padding: 10,
@@ -247,6 +264,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF7ED",
     color: "#7A4B18",
     fontSize: 8.5,
+    lineHeight: 1.3,
   },
   footer: {
     position: "absolute",
@@ -263,6 +281,15 @@ const styles = StyleSheet.create({
   },
 });
 
+function PdfFooter() {
+  return (
+    <View style={styles.footer} fixed>
+      <Text>Emotion Lab</Text>
+      <Text>Rapport de résultats</Text>
+    </View>
+  );
+}
+
 function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Non disponible";
@@ -277,7 +304,7 @@ function displayValue(value: string | null | undefined, fallback = "Non renseign
 function ScoreBar({ label, value, tone = "plum" }: { label: string; value: number; tone?: "plum" | "blue" | "amber" | "green" }) {
   const fillStyle = tone === "blue" ? styles.fillBlue : tone === "amber" ? styles.fillAmber : tone === "green" ? styles.fillGreen : {};
   return (
-    <View style={styles.scoreCard}>
+    <View style={styles.scoreCard} wrap={false}>
       <View style={styles.scoreHead}>
         <Text style={styles.scoreName}>{label}</Text>
         <Text style={styles.scoreValue}>{value}/100</Text>
@@ -312,11 +339,11 @@ export function ResultPdfDocument({ data }: { data: ResultPdfData }) {
   });
 
   return (
-    <Document title="Rapport de resultats Emotion Lab" author="Emotion Lab">
+    <Document title="Rapport de résultats Emotion Lab" author="Emotion Lab">
       <Page size="A4" style={styles.page}>
-        <View style={styles.cover}>
+        <View style={styles.cover} wrap={false}>
           <Text style={styles.brand}>Emotion Lab</Text>
-          <Text style={styles.title}>Rapport de resultats</Text>
+          <Text style={styles.title}>Rapport de résultats</Text>
           <Text style={styles.subtitle}>Lecture indicative de ton profil, de tes scores et de tes pistes de travail.</Text>
           <View style={styles.metaGrid}>
             <View style={styles.metaCard}>
@@ -334,7 +361,7 @@ export function ResultPdfDocument({ data }: { data: ResultPdfData }) {
           </View>
         </View>
 
-        <View style={[styles.section, styles.sectionTint]}>
+        <View style={[styles.section, styles.sectionTint]} wrap={false}>
           <Text style={styles.sectionTitle}>Résumé étudiant</Text>
           <View style={styles.profileGrid}>
             <View style={styles.profileCol}>
@@ -352,7 +379,7 @@ export function ResultPdfDocument({ data }: { data: ResultPdfData }) {
           </View>
           <Text style={styles.label}>Loisirs</Text>
           <View style={styles.chips}>
-            {(data.hobbies.length > 0 ? data.hobbies : ["Aucun loisir renseigné"]).slice(0, 12).map((hobby) => (
+            {(data.hobbies.length > 0 ? data.hobbies : ["Aucun loisir renseigné"]).slice(0, 10).map((hobby) => (
               <Text style={styles.chip} key={hobby}>
                 {hobby}
               </Text>
@@ -374,17 +401,23 @@ export function ResultPdfDocument({ data }: { data: ResultPdfData }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Scores principaux</Text>
           <View style={styles.scoresGrid}>
-            <ScoreBar label="Agréabilité" value={data.result.bigFiveScores.agreeableness} />
-            <ScoreBar label="Extraversion" value={data.result.bigFiveScores.extraversion} />
-            <ScoreBar label="Ouverture" value={data.result.bigFiveScores.openness} />
-            <ScoreBar label="Consciencieusité" value={data.result.bigFiveScores.conscientiousness} tone="blue" />
-            <ScoreBar label="Neuroticisme" value={data.result.bigFiveScores.neuroticism} tone="amber" />
-            <ScoreBar label="Stress" value={data.result.stressScore} tone="amber" />
-            <ScoreBar label="Organisation / equilibre" value={data.result.balanceScore} tone="green" />
+            <View style={styles.scorePair}>
+              <ScoreBar label="Agréabilité" value={data.result.bigFiveScores.agreeableness} />
+              <ScoreBar label="Extraversion" value={data.result.bigFiveScores.extraversion} />
+              <ScoreBar label="Ouverture" value={data.result.bigFiveScores.openness} />
+            </View>
+            <View style={styles.scorePair}>
+              <ScoreBar label="Consciencieusité" value={data.result.bigFiveScores.conscientiousness} tone="blue" />
+              <ScoreBar label="Neuroticisme" value={data.result.bigFiveScores.neuroticism} tone="amber" />
+              <ScoreBar label="Stress" value={data.result.stressScore} tone="amber" />
+            </View>
+            <View style={styles.scorePair}>
+              <ScoreBar label="Organisation / équilibre" value={data.result.balanceScore} tone="green" />
+            </View>
           </View>
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.section} wrap={false} break>
           <Text style={styles.sectionTitle}>Interprétation</Text>
           <View style={styles.twoCol}>
             <View style={styles.col}>
@@ -405,10 +438,7 @@ export function ResultPdfDocument({ data }: { data: ResultPdfData }) {
           <Text style={styles.disclaimer}>Ce rapport est indicatif, non médical, et ne remplace pas un accompagnement professionnel.</Text>
         </View>
 
-        <View style={styles.footer} fixed>
-          <Text>Emotion Lab</Text>
-          <Text>Rapport de resultats</Text>
-        </View>
+        <PdfFooter />
       </Page>
     </Document>
   );
