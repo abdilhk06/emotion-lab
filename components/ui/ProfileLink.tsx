@@ -20,10 +20,10 @@ export function ProfileLink({ profileId, username, className = "", children }: P
       href={`/buddies/${profileId}`}
       aria-label={`Voir le profil de ${username}`}
       title={`Voir le profil de ${username}`}
-      className={`group inline-flex items-center gap-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-400 ${className}`}
+      className={`profile-link group ${className}`}
     >
       {children ?? (
-        <span className="font-bold text-[#7b2d8b] underline decoration-dotted underline-offset-[3px] decoration-[1.5px] transition-all duration-150 group-hover:text-[#5a1f68] group-hover:decoration-solid">
+        <span className="user-card-name">
           @{username}
         </span>
       )}

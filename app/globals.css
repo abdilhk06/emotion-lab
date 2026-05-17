@@ -1,4 +1,165 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-border: hsl(var(--border));
+  --color-ring: hsl(var(--ring));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --radius-radius: var(--radius);
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71% 14%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --border: 220 13% 91%;
+    --ring: 280 60% 42%;
+    --primary: 280 60% 42%;
+    --primary-foreground: 0 0% 100%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .avatar-root {
+    @apply relative flex size-11 shrink-0 overflow-hidden rounded-full ring-2 ring-purple-100 shadow-sm;
+  }
+
+  .avatar-fallback {
+    @apply flex size-full items-center justify-center rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 text-sm font-bold text-white;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full border border-purple-100 bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 transition-colors;
+  }
+
+  .badge-muted {
+    @apply inline-flex items-center rounded-full border-0 bg-transparent p-0 text-sm font-normal text-muted-foreground;
+  }
+
+  .user-card {
+    @apply flex flex-row items-center gap-3;
+  }
+
+  .user-card-info {
+    @apply flex min-w-0 flex-col gap-0.5;
+  }
+
+  .user-card-name {
+    @apply font-bold text-[#7b2d8b] underline decoration-dotted underline-offset-[3px] decoration-[1.5px] transition-all duration-150 hover:text-[#5a1f68] hover:decoration-solid;
+  }
+
+  .user-card-name-plain {
+    @apply font-bold text-gray-900;
+  }
+
+  .user-card-subtitle {
+    @apply truncate text-sm leading-tight text-muted-foreground;
+  }
+
+  .profile-link {
+    @apply inline-flex items-center gap-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-400;
+  }
+
+  .profile-pill {
+    @apply inline-flex cursor-pointer items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-100;
+  }
+
+  .req-card {
+    @apply rounded-xl border border-border bg-white p-4 shadow-sm transition-shadow hover:shadow-md;
+  }
+
+  .req-card-header {
+    @apply flex w-full items-center justify-between;
+  }
+
+  .req-card-date {
+    @apply shrink-0 text-xs text-muted-foreground;
+  }
+
+  .req-card-message {
+    @apply mt-3 rounded-lg border-l-2 border-purple-200 bg-muted/50 px-4 py-3 text-sm italic text-foreground/80;
+  }
+
+  .req-card-footer {
+    @apply mt-3 text-xs text-muted-foreground;
+  }
+
+  .buddy-card {
+    @apply rounded-xl border border-border bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
+  }
+
+  .buddy-card-tags {
+    @apply mt-3 flex flex-wrap gap-2;
+  }
+
+  .buddy-card-tag {
+    @apply rounded-full border border-purple-100 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700;
+  }
+
+  .buddy-card-accepted {
+    @apply mt-4 flex cursor-pointer items-center justify-center rounded-lg bg-[#7b2d8b] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#5a1f68];
+  }
+
+  .tab-bar {
+    @apply flex w-fit gap-1 rounded-lg bg-muted p-1;
+  }
+
+  .tab-item {
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-150;
+  }
+
+  .tab-item-active {
+    @apply bg-white text-foreground shadow-sm;
+  }
+
+  .tab-badge {
+    @apply inline-flex size-5 items-center justify-center rounded-full bg-[#7b2d8b] text-[10px] font-bold text-white;
+  }
+
+  .section-title {
+    @apply mb-3 text-base font-semibold text-foreground;
+  }
+
+  .section-count {
+    @apply ml-1.5 text-sm font-normal text-muted-foreground;
+  }
+
+  .filter-bar {
+    @apply mb-4 flex flex-wrap items-center gap-2;
+  }
+
+  .filter-chip {
+    @apply cursor-pointer rounded-full border border-border bg-white px-3 py-1 text-xs font-medium text-foreground/70 transition-colors hover:border-purple-300 hover:text-purple-700;
+  }
+
+  .filter-chip-active {
+    @apply border-purple-400 bg-purple-50 text-purple-700;
+  }
+
+  .search-input {
+    @apply w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-300;
+  }
+}
 
 :root {
   --plum: #7e3d5e;
