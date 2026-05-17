@@ -5,9 +5,7 @@ export default function ChatbotPage() {
   return (
     <AppLayout title="Chatbot">
       <div className="chatbot-page-frame">
-        <div className="chatbot-page-shell">
-          <PlanningFlow />
-        </div>
+        <PlanningFlow />
       </div>
     </AppLayout>
   );

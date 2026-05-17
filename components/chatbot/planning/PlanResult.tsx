@@ -262,7 +262,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
           display: grid;
           gap: 18px;
           width: 100%;
-          max-width: 1240px;
+          max-width: 1280px;
           margin: 0 auto;
         }
 
@@ -279,6 +279,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
             radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.22), transparent 28%),
             linear-gradient(135deg, #7e3d5e 0%, #92617d 34%, #6c7d99 66%, #2e8bbf 100%);
           box-shadow: 0 18px 38px rgba(35, 28, 51, 0.16);
+          width: 100%;
         }
 
         .intro-copy {
@@ -364,6 +365,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
 
         .planning-section {
           padding: 16px;
+          width: 100%;
         }
 
         .section-head {
@@ -388,9 +390,9 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
 
         .desktop-table {
           width: 100%;
-          min-width: 1080px;
+          min-width: 1040px;
           border-collapse: collapse;
-          table-layout: auto;
+          table-layout: fixed;
           font-size: 12px;
         }
 
@@ -399,7 +401,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         }
 
         .col-task {
-          width: 18%;
+          width: 20%;
         }
 
         .col-type {
@@ -419,7 +421,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         }
 
         .col-advice {
-          width: 31%;
+          width: 29%;
         }
 
         th,
@@ -493,6 +495,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
           color: #40516c;
           line-height: 1.35;
           overflow-wrap: anywhere;
+          white-space: normal;
         }
 
         .soft-tag,
@@ -588,14 +591,16 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         }
 
         .action-list {
-          display: grid;
+          display: flex;
+          flex-wrap: wrap;
           gap: 10px;
         }
 
         :global(.plan-pdf-action),
         .action-button {
           min-height: 42px;
-          width: 100%;
+          min-width: 132px;
+          width: auto;
           border: 1px solid #d6c8dd;
           background: #fff;
           color: var(--plum);
@@ -611,9 +616,10 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
 
         :global(.plan-pdf-action) {
           border-color: transparent;
-          background: linear-gradient(135deg, var(--plum), var(--bleu-ciel));
+          background: #8b4e6e;
           color: #fff;
-          box-shadow: 0 10px 22px rgba(46, 139, 191, 0.2);
+          box-shadow: 0 10px 22px rgba(139, 78, 110, 0.22);
+          min-width: 150px;
         }
 
         :global(.plan-pdf-action:hover),
@@ -624,7 +630,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         }
 
         :global(.plan-pdf-action:hover) {
-          background: linear-gradient(135deg, #713454, #247eae);
+          background: #713454;
           color: #fff;
         }
 
@@ -750,6 +756,12 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         @media (max-width: 560px) {
           .synthesis-grid {
             grid-template-columns: 1fr;
+          }
+
+          .action-list,
+          :global(.plan-pdf-action),
+          .action-button {
+            width: 100%;
           }
 
           .planning-section,

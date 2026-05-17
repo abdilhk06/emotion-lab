@@ -226,10 +226,10 @@ export function PlanningFlow() {
           <p className="eyebrow">Emotion Bot</p>
           <h1>Planification guidee</h1>
         </div>
-        <span className="brand-logo" aria-hidden="true" />
+        <span className="header-badge">Planning IA</span>
       </header>
 
-      <p className="safety-banner">{SAFETY_MESSAGE}</p>
+      <p className="safety-banner"><span aria-hidden="true">i</span>{SAFETY_MESSAGE}</p>
 
       {error ? (
         <p className="form-error" role="alert">
@@ -472,12 +472,13 @@ export function PlanningFlow() {
       <style jsx>{`
         .planning-page {
           display: grid;
-          gap: 14px;
+          gap: 20px;
           width: 100%;
-          min-height: calc(100vh - 125px);
-          justify-items: stretch;
-          overflow: hidden;
-          background: #fdfbfc;
+          min-height: 100vh;
+          align-content: start;
+          padding: 40px 56px;
+          overflow-x: hidden;
+          background: #f7f4f8;
         }
 
         .welcome-panel,
@@ -494,20 +495,33 @@ export function PlanningFlow() {
         .planning-shell-header {
           display: flex;
           justify-content: space-between;
-          align-items: center;
-          gap: 16px;
+          align-items: flex-start;
+          gap: 24px;
           width: 100%;
-          padding: 20px clamp(18px, 4vw, 30px);
-          background: linear-gradient(135deg, #7e3d5e 0%, #8a6889 34%, #5f6f8d 68%, #2e8bbf 100%);
+          min-height: 205px;
+          padding: 34px 38px;
+          border-radius: 18px;
+          background:
+            radial-gradient(circle at 15% 20%, #8b4e6e 0%, transparent 35%),
+            radial-gradient(circle at 85% 25%, #3a8db8 0%, transparent 38%),
+            linear-gradient(135deg, #3d1f3d 0%, #4a5568 52%, #4a7f8c 100%);
           color: #fff;
+          box-shadow: 0 18px 44px rgba(61, 31, 61, 0.16);
         }
 
-        .planning-shell-header :global(.brand-logo) {
-          width: 44px;
-          height: 44px;
+        .header-badge {
+          display: inline-flex;
+          align-items: center;
+          min-height: 38px;
+          padding: 0 14px;
+          border: 1px solid rgba(255, 255, 255, 0.34);
+          border-radius: 999px;
           flex: 0 0 auto;
-          background: rgba(255, 255, 255, 0.92);
-          box-shadow: inset 0 0 0 8px rgba(126, 61, 94, 0.1);
+          background: rgba(255, 255, 255, 0.16);
+          color: rgba(255, 255, 255, 0.9);
+          backdrop-filter: blur(12px);
+          font-size: 12px;
+          font-weight: 700;
         }
 
         .eyebrow,
@@ -520,15 +534,16 @@ export function PlanningFlow() {
         }
 
         .eyebrow {
-          color: var(--bleu-ciel);
-          font-size: 12px;
+          color: #8b4e6e;
+          font-size: 0.72rem;
           font-weight: 800;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.15em;
           text-transform: uppercase;
         }
 
         .planning-shell-header .eyebrow {
-          color: rgba(255, 255, 255, 0.82);
+          color: rgba(255, 255, 255, 0.75);
+          letter-spacing: 0.2em;
         }
 
         h1,
@@ -539,6 +554,9 @@ export function PlanningFlow() {
 
         .planning-shell-header h1 {
           color: #fff;
+          font-size: clamp(2rem, 4vw, 2.6rem);
+          font-weight: 300;
+          margin-top: 12px;
         }
 
         h1 {
@@ -551,19 +569,37 @@ export function PlanningFlow() {
 
         .safety-banner,
         .form-error {
-          margin: 0 clamp(16px, 3vw, 24px);
-          justify-self: center;
-          width: min(calc(100% - 32px), 1120px);
-          padding: 12px 14px;
+          margin: 0;
+          width: min(100%, 920px);
+          padding: 18px 22px;
           border-radius: 14px;
           font-size: 14px;
-          font-weight: 700;
+          font-weight: 600;
         }
 
         .safety-banner {
-          border: 1px solid #f0ccd2;
-          background: #fff7f8;
-          color: #7f2238;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          border: 1px solid #e6ddd9;
+          border-left: 4px solid #8b4e6e;
+          background: #fafaf8;
+          color: #4a5568;
+          box-shadow: 0 8px 30px rgba(61, 31, 61, 0.06);
+        }
+
+        .safety-banner span {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          border-radius: 999px;
+          background: #8b4e6e;
+          color: #fff;
+          font-size: 12px;
+          font-weight: 800;
+          flex: 0 0 auto;
         }
 
         .form-error {
@@ -577,9 +613,9 @@ export function PlanningFlow() {
           grid-template-columns: minmax(0, 1fr) auto;
           align-items: end;
           gap: 28px;
-          width: min(calc(100% - 32px), 1120px);
+          width: 100%;
           min-height: 220px;
-          margin: 0 clamp(16px, 3vw, 24px);
+          margin: 0;
           padding: clamp(20px, 4vw, 34px);
           background:
             linear-gradient(135deg, rgba(126, 61, 94, 0.08), transparent 44%),
@@ -604,17 +640,20 @@ export function PlanningFlow() {
           display: grid;
           gap: 20px;
           justify-self: center;
-          width: min(calc(100% - 32px), 720px);
-          margin: 0 clamp(16px, 3vw, 24px);
-          padding: clamp(16px, 3vw, 24px);
+          width: min(100%, 720px);
+          margin: 8px auto 0;
+          padding: 32px;
+          border-radius: 18px;
+          border: 1px solid rgba(139, 78, 110, 0.12);
+          box-shadow: 0 12px 40px rgba(61, 31, 61, 0.08);
         }
 
         .recap-panel {
-          width: min(calc(100% - 32px), 1120px);
+          width: min(100%, 1120px);
         }
 
         .result-panel {
-          width: min(calc(100% - 32px), 1280px);
+          width: min(100%, 1280px);
         }
 
         .step-heading {
@@ -622,10 +661,15 @@ export function PlanningFlow() {
           justify-content: space-between;
           align-items: start;
           gap: 16px;
+          padding-bottom: 18px;
+          border-bottom: 1px solid #eee7ec;
         }
 
         .step-heading h2 {
           margin-top: 4px;
+          color: #2d2d2d;
+          font-size: 1.8rem;
+          font-weight: 500;
         }
 
         .step-bars {
@@ -654,27 +698,33 @@ export function PlanningFlow() {
           gap: 14px;
         }
 
+        .form-panel .field-grid {
+          align-items: end;
+        }
+
         .field {
           display: grid;
           gap: 8px;
           min-width: 0;
-          color: var(--texte);
+          color: #2d2d2d;
           font-weight: 700;
         }
 
         .field span {
-          color: var(--plum);
-          font-size: 13px;
+          color: #756a76;
+          font-size: 0.72rem;
           font-weight: 800;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
         }
 
         input,
         select {
           width: 100%;
-          min-height: 48px;
-          border: 1.5px solid var(--bordure);
+          min-height: 52px;
+          border: 1px solid #e6ddd9;
           border-radius: 12px;
-          background: var(--fond-creme);
+          background: #fff;
           color: var(--texte);
           font: inherit;
           padding: 0 14px;
@@ -688,47 +738,58 @@ export function PlanningFlow() {
         input:focus,
         select:focus {
           border-color: var(--bleu-ciel);
-          box-shadow: 0 0 0 3px rgba(46, 139, 191, 0.14);
+          box-shadow: 0 0 0 2px rgba(139, 78, 110, 0.28);
         }
 
         .counter-control {
           display: grid;
-          grid-template-columns: 46px minmax(72px, 1fr) 46px;
+          grid-template-columns: 44px minmax(72px, 1fr) 44px;
           align-items: center;
-          min-height: 52px;
-          overflow: hidden;
-          border: 1.5px solid var(--bordure);
-          border-radius: 16px;
-          background: var(--fond-creme);
+          height: 52px;
+          padding: 7px;
+          border: 1px solid #e6ddd9;
+          border-radius: 999px;
+          background: #fff;
         }
 
         .counter-control input {
-          min-height: 50px;
+          min-height: 36px;
           border: 0;
           border-radius: 0;
           background: transparent;
           text-align: center;
           font-family: "Poppins", sans-serif;
-          font-size: 20px;
-          font-weight: 800;
-          color: var(--plum);
+          font-size: 1.35rem;
+          font-weight: 600;
+          color: #8b4e6e;
           padding: 0 8px;
         }
 
         .counter-control button {
-          height: 100%;
-          min-height: 50px;
+          width: 36px;
+          height: 36px;
+          min-height: 36px;
           border: 0;
-          background: #fff;
-          color: var(--plum);
+          border-radius: 999px;
+          background: #8b4e6e;
+          color: #fff;
           cursor: pointer;
           font: inherit;
           font-size: 24px;
           font-weight: 800;
+          transition: transform 120ms ease, opacity 120ms ease;
+        }
+
+        .counter-control button:active:not(:disabled),
+        .type-chip:active,
+        .btn:active:not(:disabled),
+        .edit-button:active:not(:disabled) {
+          transform: scale(0.96);
         }
 
         .counter-control button:disabled {
-          color: #c5b7cc;
+          background: #ded5df;
+          color: #fff;
           cursor: not-allowed;
         }
 
@@ -740,28 +801,38 @@ export function PlanningFlow() {
         }
 
         .range-label strong {
-          color: var(--plum);
+          min-width: 52px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          background: #f5edf2;
+          color: #8b4e6e;
           font-size: 13px;
           font-weight: 900;
+          text-align: center;
         }
 
         .planning-range {
           width: 100%;
           height: 8px;
-          margin: 4px 0 2px;
+          margin: 10px 0 16px;
           padding: 0;
           border: 0;
           border-radius: 999px;
-          background: linear-gradient(90deg, #8ec0c9 0%, #f7bac1 55%, #7e3d5e 100%);
+          background: linear-gradient(90deg, #8ec0c9 0%, #f7bac1 55%, #8b4e6e 100%);
           outline: none;
           appearance: none;
           -webkit-appearance: none;
+          cursor: pointer;
+        }
+
+        .planning-range:focus-visible {
+          box-shadow: 0 0 0 4px rgba(139, 78, 110, 0.18);
         }
 
         .planning-range::-webkit-slider-thumb {
           width: 18px;
           height: 18px;
-          border: 3px solid #7e3d5e;
+          border: 3px solid #8b4e6e;
           border-radius: 999px;
           background: #fff;
           box-shadow: 0 2px 8px rgba(26, 26, 46, 0.16);
@@ -773,7 +844,7 @@ export function PlanningFlow() {
         .planning-range::-moz-range-thumb {
           width: 18px;
           height: 18px;
-          border: 3px solid #7e3d5e;
+          border: 3px solid #8b4e6e;
           border-radius: 999px;
           background: #fff;
           box-shadow: 0 2px 8px rgba(26, 26, 46, 0.16);
@@ -783,7 +854,7 @@ export function PlanningFlow() {
         .planning-range::-moz-range-track {
           height: 8px;
           border-radius: 999px;
-          background: linear-gradient(90deg, #8ec0c9 0%, #f7bac1 55%, #7e3d5e 100%);
+          background: linear-gradient(90deg, #8ec0c9 0%, #f7bac1 55%, #8b4e6e 100%);
         }
 
         .importance-field {
@@ -798,7 +869,7 @@ export function PlanningFlow() {
 
         .type-chip {
           min-height: 40px;
-          border: 1.5px solid #e2d9e8;
+          border: 1px solid #e6ddd9;
           border-radius: 999px;
           background: #fff;
           color: var(--texte-gris);
@@ -820,10 +891,10 @@ export function PlanningFlow() {
         }
 
         .type-chip.is-selected {
-          border-color: var(--plum);
-          background: var(--plum);
+          border-color: #8b4e6e;
+          background: #8b4e6e;
           color: #fff;
-          box-shadow: 0 8px 18px rgba(126, 61, 94, 0.18);
+          box-shadow: 0 8px 18px rgba(139, 78, 110, 0.18);
         }
 
         .progress-stack {
@@ -852,14 +923,35 @@ export function PlanningFlow() {
         .actions {
           display: flex;
           justify-content: flex-end;
-          gap: 10px;
+          gap: 12px;
           flex-wrap: wrap;
         }
 
         .actions :global(.btn),
         .welcome-panel :global(.btn) {
           min-height: 46px;
+          height: 44px;
           cursor: pointer;
+          transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+        }
+
+        .actions :global(.btn-primary),
+        .welcome-panel :global(.btn-primary) {
+          min-width: 140px;
+          background: #8b4e6e;
+        }
+
+        .actions :global(.btn-primary:hover:not(:disabled)),
+        .welcome-panel :global(.btn-primary:hover:not(:disabled)) {
+          transform: translateY(-1px);
+          background: #713454;
+          box-shadow: 0 10px 22px rgba(139, 78, 110, 0.22);
+        }
+
+        .actions :global(.btn-tertiary) {
+          min-width: 120px;
+          border-color: #8b4e6e;
+          color: #8b4e6e;
         }
 
         .actions :global(.btn:disabled),
@@ -1014,16 +1106,17 @@ export function PlanningFlow() {
 
         .planning-footer {
           width: 100%;
-          padding: 0 clamp(18px, 4vw, 30px) 18px;
-          color: var(--texte-clair);
-          font-size: 12px;
+          padding: 4px 0 0;
+          color: #8a7f89;
+          font-size: 0.75rem;
+          font-style: italic;
           line-height: 1.4;
           text-align: center;
         }
 
         @media (max-width: 760px) {
           .planning-page {
-            border-radius: 16px;
+            padding: 16px;
           }
 
           .safety-banner,
@@ -1033,9 +1126,14 @@ export function PlanningFlow() {
           .recap-panel,
           .result-panel,
           .loading-panel {
-            width: calc(100% - 36px);
-            margin-left: 18px;
-            margin-right: 18px;
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
+          }
+
+          .planning-shell-header {
+            min-height: 190px;
+            padding: 26px 22px;
           }
 
           .welcome-panel,
