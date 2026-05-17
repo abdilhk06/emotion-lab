@@ -57,6 +57,7 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
         <h3>{item.profile.pseudo}</h3>
         <span className="req-meta">MBTI · {item.profile.studyLevel} · 82% compat</span>
       </div>
+      <span className="req-profile-pill" aria-hidden="true">Profil</span>
     </>
   );
 
@@ -103,21 +104,29 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
           min-width: 0;
           display: inline-flex;
           align-items: center;
-          gap: 14px;
+          gap: 12px;
           color: inherit;
           text-decoration: none;
+          max-width: min(100%, 520px);
         }
         .req-identity-link {
-          border-radius: 999px 12px 12px 999px;
+          border-radius: 999px;
+          padding: 5px 10px 5px 5px;
+          margin: -5px -10px -5px -5px;
+          transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+        }
+        .req-identity-link:hover,
+        .req-identity-link:focus-visible {
+          background: #faf2f7;
+          box-shadow: 0 8px 24px rgba(138, 59, 101, 0.12);
         }
         .req-identity-link:hover h3,
         .req-identity-link:focus-visible h3 {
           color: #8a3b65;
-          text-decoration: underline;
         }
         .req-identity-link:focus-visible {
-          outline: 3px solid rgba(138, 59, 101, 0.25);
-          outline-offset: 4px;
+          outline: 3px solid rgba(138, 59, 101, 0.28);
+          outline-offset: 3px;
         }
         .req-avatar {
           width: 46px;
@@ -138,10 +147,33 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
         .req-info h3 {
           margin: 0;
           font-size: 16px;
+          color: #07123a;
+          transition: color 160ms ease;
         }
         .req-meta {
           color: #66738e;
           font-size: 13px;
+        }
+        .req-profile-pill {
+          border: 1px solid #ead9e5;
+          border-radius: 999px;
+          color: #8a3b65;
+          background: #fff;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          line-height: 1;
+          padding: 6px 8px;
+          opacity: 0.78;
+          transform: translateX(-2px);
+          transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease;
+          white-space: nowrap;
+        }
+        .req-identity-link:hover .req-profile-pill,
+        .req-identity-link:focus-visible .req-profile-pill {
+          background: #f5dde9;
+          opacity: 1;
+          transform: translateX(0);
         }
         .req-time {
           margin-left: auto;
@@ -156,6 +188,18 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
           border-radius: 8px;
           font-style: italic;
           color: #26365a;
+        }
+        @media (max-width: 599px) {
+          .req-header {
+            align-items: flex-start;
+          }
+          .req-profile-pill {
+            display: none;
+          }
+          .req-identity-link,
+          .req-identity-static {
+            max-width: calc(100% - 70px);
+          }
         }
       `}</style>
     </article>
