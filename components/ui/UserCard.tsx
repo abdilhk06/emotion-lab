@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ProfileLink } from "@/components/ui/ProfileLink";
 
 type UserCardProps = {
@@ -6,25 +6,21 @@ type UserCardProps = {
   username: string;
   mbti?: string;
   level?: string;
+  avatarPath?: string | null;
 };
-
-function getInitial(username: string) {
-  return username.trim().replace(/^@/, "").charAt(0).toUpperCase() || "?";
-}
 
 export function UserCard({
   profileId,
   username,
   mbti,
   level = "Niveau non précisé",
+  avatarPath = null,
 }: UserCardProps) {
   const subtitle = [mbti, level].filter(Boolean).join(" · ");
 
   return (
     <div className="user-card">
-      <Avatar>
-        <AvatarFallback>{getInitial(username)}</AvatarFallback>
-      </Avatar>
+      <UserAvatar name={username} avatarPath={avatarPath} size={36} />
 
       <div className="user-card-info">
         {profileId ? (

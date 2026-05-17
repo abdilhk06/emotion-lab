@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ProfileLink } from "@/components/ui/ProfileLink";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type ConversationItemProps = {
   conversationId: string;
@@ -9,7 +10,7 @@ type ConversationItemProps = {
   pseudo: string;
   preview: string;
   timeLabel: string;
-  initials: string;
+  avatarPath: string | null;
   unreadCount: number;
 };
 
@@ -19,7 +20,7 @@ export function ConversationItem({
   pseudo,
   preview,
   timeLabel,
-  initials,
+  avatarPath,
   unreadCount,
 }: ConversationItemProps) {
   const hasUnread = unreadCount > 0;
@@ -27,7 +28,7 @@ export function ConversationItem({
   return (
     <article className="conv-row">
       <Link href={`/messages/${conversationId}`} className="conv-avatar-link" aria-label={`Ouvrir la conversation avec ${pseudo}`}>
-        <div className="conv-avatar" aria-hidden="true">{initials}</div>
+        <UserAvatar name={pseudo} avatarPath={avatarPath} size={52} className="conv-avatar" />
       </Link>
       <div className="conv-body">
         <ProfileLink profileId={profileId} username={pseudo} />

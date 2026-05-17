@@ -14,6 +14,7 @@ type ProfileRow = {
   bio: string | null;
   study_level: string | null;
   is_visible: boolean | null;
+  avatar_path: string | null;
 };
 
 type ResultRow = {
@@ -45,6 +46,7 @@ type BuddyItem = {
   sharedHobbies: string[];
   compatibility: number;
   requestStatus: BuddyRequestStatus;
+  avatarPath: string | null;
 };
 
 type DirectoryState =
@@ -86,12 +88,12 @@ export function BuddyDirectoryPage() {
         const [profilesRes, myProfileRes, resultsRes, hobbiesRes, requestsRes] = await Promise.all([
           supabase
             .from("profiles")
-            .select("id, pseudo, bio, study_level, is_visible")
+            .select("id, pseudo, bio, study_level, is_visible, avatar_path")
             .eq("is_visible", true)
             .returns<ProfileRow[]>(),
           supabase
             .from("profiles")
-            .select("id, pseudo, bio, study_level, is_visible")
+            .select("id, pseudo, bio, study_level, is_visible, avatar_path")
             .eq("id", user.id)
             .maybeSingle<ProfileRow>(),
           supabase
@@ -169,6 +171,7 @@ export function BuddyDirectoryPage() {
             sharedHobbies,
             compatibility,
             requestStatus: requestStatusByBuddy.get(profile.id) ?? "none",
+            avatarPath: profile.avatar_path ?? null,
           };
         });
 
@@ -278,6 +281,7 @@ export function BuddyDirectoryPage() {
                   sharedHobbies={buddy.sharedHobbies}
                   compatibility={buddy.compatibility}
                   requestStatus={buddy.requestStatus}
+                  avatarPath={buddy.avatarPath}
                 />
               ))}
             </div>

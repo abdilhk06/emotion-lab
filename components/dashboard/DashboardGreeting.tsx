@@ -1,13 +1,17 @@
+import { UserAvatar } from "@/components/ui/UserAvatar";
+
 type DashboardGreetingProps = {
   pseudo: string;
   mbtiCode: string | null;
   mbtiName: string | null;
   school: string;
+  avatarPath: string | null;
 };
 
-export function DashboardGreeting({ pseudo, mbtiCode, mbtiName, school }: DashboardGreetingProps) {
+export function DashboardGreeting({ pseudo, mbtiCode, mbtiName, school, avatarPath }: DashboardGreetingProps) {
   return (
     <header className="dashboard-greeting">
+      <UserAvatar name={pseudo} avatarPath={avatarPath} size={52} className="dashboard-avatar" />
       <p className="dashboard-greeting-label">Bonjour,</p>
       <h2>{pseudo}</h2>
       <div className="dashboard-greeting-line">
@@ -18,6 +22,8 @@ export function DashboardGreeting({ pseudo, mbtiCode, mbtiName, school }: Dashbo
       <style jsx>{`
         .dashboard-greeting {
           color: var(--texte);
+          display: grid;
+          gap: 8px;
         }
 
         .dashboard-greeting-label {

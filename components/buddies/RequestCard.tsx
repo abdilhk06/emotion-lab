@@ -16,6 +16,7 @@ export type BuddyRequestItem = {
     pseudo: string;
     mbti?: string;
     studyLevel: string;
+    avatarPath?: string | null;
   };
 };
 
@@ -48,6 +49,7 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
         username={item.profile.pseudo}
         mbti={item.profile.mbti}
         level={item.profile.studyLevel}
+        avatarPath={item.profile.avatarPath}
       />
       <ProfileLink
         profileId={item.profileId}

@@ -1,8 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/app-layout/AppLayout";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { deleteAvatarBestEffort, uploadAvatarFile, validateAvatarFileSize, validateAvatarFileType } from "@/lib/supabase/avatar";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { STUDY_LEVEL_CHOICES, isStudyLevel } from "@/lib/study-levels";
 
@@ -13,6 +15,7 @@ type ProfileRow = {
   bio: string | null;
   looking_for: string | null;
   is_visible: boolean | null;
+  avatar_path: string | null;
 };
 
 type HobbyRow = {
@@ -32,6 +35,7 @@ type FormValues = {
   lookingFor: string;
   isVisible: boolean;
   hobbies: string[];
+  avatarPath: string | null;
 };
 
 type ProfileState =
@@ -51,6 +55,7 @@ const EMPTY_FORM: FormValues = {
   lookingFor: "",
   isVisible: true,
   hobbies: [],
+  avatarPath: null,
 };
 
 function normalizeHobby(hobby: string): string {
@@ -96,13 +101,6 @@ function displayPseudo(pseudo: string, email: string): string {
   return email ? `@${email.split("@")[0]}` : "@profil";
 }
 
-function initialsFromIdentity(pseudo: string, email: string): string {
-  const source = pseudo.trim().replace(/^@+/, "") || email.split("@")[0] || "EL";
-  const parts = source.split(/[\s._-]+/).filter(Boolean);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
-
 export default function ProfilePage() {
   const router = useRouter();
   const [state, setState] = useState<ProfileState>({ status: "loading" });
@@ -115,6 +113,8 @@ export default function ProfilePage() {
   const [hobbyDraft, setHobbyDraft] = useState("");
   const [feedback, setFeedback] = useState<{ tone: "error" | "success"; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -137,7 +137,7 @@ export default function ProfilePage() {
         const [profileRes, hobbiesRes, resultRes] = await Promise.all([
           supabase
             .from("profiles")
-            .select("id, pseudo, study_level, bio, looking_for, is_visible")
+            .select("id, pseudo, study_level, bio, looking_for, is_visible, avatar_path")
             .eq("id", user.id)
             .maybeSingle<ProfileRow>(),
           supabase.from("user_hobbies").select("hobby").eq("user_id", user.id).returns<HobbyRow[]>(),
@@ -171,6 +171,7 @@ export default function ProfilePage() {
           lookingFor: profileRes.data.looking_for?.trim() ?? "",
           isVisible: profileRes.data.is_visible ?? true,
           hobbies: sortHobbies((hobbiesRes.data ?? []).map((item) => item.hobby).filter(Boolean)),
+          avatarPath: profileRes.data.avatar_path ?? null,
         };
 
         setMbtiCode(resultRes.data?.mbti_code ?? null);
@@ -190,7 +191,6 @@ export default function ProfilePage() {
   }, [router]);
 
   const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(initialForm), [form, initialForm]);
-  const initials = useMemo(() => initialsFromIdentity(form.pseudo, email), [email, form.pseudo]);
   const mbtiLabel = mbtiCode ? `${mbtiCode}${mbtiName ? ` · ${mbtiName}` : ""}` : "Profil MBTI a completer";
   const metaStudy = form.studyLevel || "Niveau d'etudes non renseigne";
 
@@ -203,6 +203,32 @@ export default function ProfilePage() {
     if (values.lookingFor.length > LOOKING_FOR_MAX) return "Le champ 'ce que tu cherches' depasse la limite.";
     if (values.hobbies.length > HOBBIES_MAX) return "Tu peux enregistrer jusqu'a 15 loisirs maximum.";
     return null;
+  };
+
+  const onAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !userId) return;
+    setFeedback(null);
+    try {
+      validateAvatarFileType(file);
+      validateAvatarFileSize(file);
+      const preview = URL.createObjectURL(file);
+      setAvatarPreviewUrl(preview);
+      setAvatarUploading(true);
+      const oldAvatar = form.avatarPath;
+      const newAvatarPath = await uploadAvatarFile(userId, file);
+      const updateRes = await getSupabaseClient().from("profiles").update({ avatar_path: newAvatarPath }).eq("id", userId);
+      if (updateRes.error) throw new Error(updateRes.error.message);
+      setForm((prev) => ({ ...prev, avatarPath: newAvatarPath }));
+      setInitialForm((prev) => ({ ...prev, avatarPath: newAvatarPath }));
+      await deleteAvatarBestEffort(oldAvatar);
+      setFeedback({ tone: "success", message: "Photo de profil mise a jour." });
+    } catch (err) {
+      setFeedback({ tone: "error", message: err instanceof Error ? err.message : "Echec upload avatar." });
+    } finally {
+      setAvatarUploading(false);
+      event.target.value = "";
+    }
   };
 
   const onAddHobby = () => {
@@ -320,10 +346,7 @@ export default function ProfilePage() {
 
           <section className="profile-edit-header">
             <div className="profile-photo-area">
-              <div className="avatar avatar-xl">{initials}</div>
-              <button className="photo-edit-btn" type="button" title="Modifier la photo" aria-label="Modifier la photo">
-                <span aria-hidden="true">✎</span>
-              </button>
+              <UserAvatar name={displayPseudo(form.pseudo, email)} avatarPath={form.avatarPath} imageUrl={avatarPreviewUrl} size={100} className="avatar avatar-xl" />
             </div>
 
             <div className="profile-info-area">
@@ -341,15 +364,23 @@ export default function ProfilePage() {
               </div>
 
               <div className="photo-options">
-                <button className="photo-option-btn" type="button" disabled>
-                  Importer une photo
-                </button>
-                <button className="photo-option-btn" type="button">
+                <label className="photo-option-btn" htmlFor="avatar-upload">
+                  {avatarUploading ? "Upload..." : "Importer une photo"}
+                </label>
+                <button
+                  className="photo-option-btn"
+                  type="button"
+                  onClick={() => {
+                    setAvatarPreviewUrl(null);
+                    setForm((prev) => ({ ...prev, avatarPath: null }));
+                  }}
+                >
                   Utiliser mes initiales
                 </button>
+                <input id="avatar-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onAvatarChange} />
               </div>
 
-              <p className="photo-help">JPG ou PNG · max 5 MB · carre recommande</p>
+              <p className="photo-help">JPEG/PNG/WEBP · max 5 MB · carre recommande</p>
             </div>
           </section>
 

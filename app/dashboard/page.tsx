@@ -15,6 +15,7 @@ type ProfileRow = {
   id: string;
   pseudo: string | null;
   study_level: string | null;
+  avatar_path: string | null;
 };
 
 type TestResultRow = {
@@ -28,6 +29,7 @@ type DashboardData = {
   mbtiCode: string | null;
   mbtiName: string | null;
   school: string;
+  avatarPath: string | null;
   hasResult: boolean;
   buddiesCount: number;
   unreadMessages: number;
@@ -75,7 +77,7 @@ export default function DashboardPage() {
         }
 
         const [profileRes, resultRes, conversationsRes, pendingRequestsRes] = await Promise.all([
-          supabase.from("profiles").select("id, pseudo, study_level").eq("id", user.id).maybeSingle<ProfileRow>(),
+          supabase.from("profiles").select("id, pseudo, study_level, avatar_path").eq("id", user.id).maybeSingle<ProfileRow>(),
           supabase
             .from("test_results")
             .select("mbti_code, mbti_name, created_at")
@@ -126,6 +128,7 @@ export default function DashboardPage() {
           mbtiCode: result?.mbti_code ?? null,
           mbtiName: result?.mbti_name ?? null,
           school: profile?.study_level?.trim() || "Niveau non precise",
+          avatarPath: profile?.avatar_path ?? null,
           hasResult: Boolean(result),
           buddiesCount: countOrZero(conversationsRes.count),
           unreadMessages: countOrZero(unreadRes.count),
@@ -181,7 +184,7 @@ export default function DashboardPage() {
 
     return (
       <div className="dashboard-stack">
-        <DashboardGreeting pseudo={data.pseudo} mbtiCode={data.mbtiCode} mbtiName={data.mbtiName} school={data.school} />
+        <DashboardGreeting pseudo={data.pseudo} mbtiCode={data.mbtiCode} mbtiName={data.mbtiName} school={data.school} avatarPath={data.avatarPath} />
 
         {state.status === "empty" && state.reasons.includes("profile") ? (
           <section className="dash-state-card" role="status">

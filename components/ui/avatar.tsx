@@ -25,4 +25,8 @@ function AvatarFallback({ className, ...props }: React.ComponentProps<typeof Ava
   );
 }
 
-export { Avatar, AvatarFallback };
+function AvatarImage({ className, ...props }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  return <AvatarPrimitive.Image className={cx("avatar-image", className)} {...props} />;
+}
+
+export { Avatar, AvatarFallback, AvatarImage };

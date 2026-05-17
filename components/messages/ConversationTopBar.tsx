@@ -2,24 +2,23 @@
 
 import Link from "next/link";
 import { ProfileLink } from "@/components/ui/ProfileLink";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type ConversationTopBarProps = {
   profileId: string;
   pseudo: string;
   studyLevel: string;
-  initials: string;
+  avatarPath: string | null;
 };
 
-export function ConversationTopBar({ profileId, pseudo, studyLevel, initials }: ConversationTopBarProps) {
+export function ConversationTopBar({ profileId, pseudo, studyLevel, avatarPath }: ConversationTopBarProps) {
   return (
     <header className="conversation-top-bar">
       <Link className="back-btn" href="/messages" aria-label="Retour a la messagerie">
         ←
       </Link>
 
-      <div className="avatar" aria-hidden="true">
-        {initials}
-      </div>
+      <UserAvatar name={pseudo} avatarPath={avatarPath} size={38} className="avatar" />
 
       <div className="buddy-meta">
         <h2>

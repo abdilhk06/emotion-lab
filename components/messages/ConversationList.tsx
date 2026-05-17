@@ -26,13 +26,14 @@ type MessageRow = {
 type ProfileRow = {
   id: string;
   pseudo: string | null;
+  avatar_path: string | null;
 };
 
 type ConversationViewModel = {
   id: string;
   profileId: string;
   pseudo: string;
-  initials: string;
+  avatarPath: string | null;
   preview: string;
   lastMessageAt: string;
   unreadCount: number;
@@ -57,12 +58,6 @@ function formatPseudo(pseudo: string | null): string {
   const trimmed = pseudo?.trim();
   if (!trimmed) return "@buddy";
   return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
-}
-
-function toInitials(value: string): string {
-  const cleaned = value.replace(/^@/, "").trim();
-  if (!cleaned) return "B";
-  return cleaned.slice(0, 1).toUpperCase();
 }
 
 function formatTimeLabel(value: string): string {
@@ -159,7 +154,7 @@ export function ConversationList() {
             )
             .order("created_at", { ascending: false })
             .returns<MessageRow[]>(),
-          supabase.from("profiles").select("id, pseudo").in("id", otherIds).returns<ProfileRow[]>(),
+          supabase.from("profiles").select("id, pseudo, avatar_path").in("id", otherIds).returns<ProfileRow[]>(),
         ]);
 
         const firstError = messagesRes.error ?? profilesRes.error;
@@ -192,7 +187,7 @@ export function ConversationList() {
               id: conversation.id,
               profileId: otherUserId,
               pseudo,
-              initials: toInitials(pseudo),
+              avatarPath: profile?.avatar_path ?? null,
               preview: latestMessage?.body?.trim() || "Aucun message pour le moment.",
               lastMessageAt,
               unreadCount: 0,
@@ -311,7 +306,7 @@ export function ConversationList() {
             pseudo={item.pseudo}
             preview={item.preview}
             timeLabel={formatTimeLabel(item.lastMessageAt)}
-            initials={item.initials}
+            avatarPath={item.avatarPath}
             unreadCount={item.unreadCount}
           />
         ))}

@@ -28,6 +28,7 @@ type ProfileRow = {
   id: string;
   pseudo: string | null;
   study_level: string | null;
+  avatar_path: string | null;
 };
 
 type ConversationState =
@@ -38,7 +39,7 @@ type ConversationState =
   | {
       status: "ready";
       currentUserId: string;
-      buddy: { id: string; pseudo: string; studyLevel: string; initials: string };
+      buddy: { id: string; pseudo: string; studyLevel: string; avatarPath: string | null };
       messages: MessageViewModel[];
     };
 
@@ -48,11 +49,6 @@ function formatPseudo(value: string | null | undefined): string {
   const trimmed = value?.trim() ?? "";
   if (!trimmed) return "@buddy";
   return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
-}
-
-function getInitials(pseudo: string): string {
-  const normalized = pseudo.replace(/^@/, "").trim();
-  return normalized ? normalized.slice(0, 1).toUpperCase() : "B";
 }
 
 function resolveParticipants(conversation: ConversationRow) {
@@ -159,7 +155,7 @@ export default function ConversationPage() {
         const [buddyRes, messagesRes] = await Promise.all([
           supabase
             .from("profiles")
-            .select("id, pseudo, study_level")
+            .select("id, pseudo, study_level, avatar_path")
             .eq("id", buddyId)
             .maybeSingle<ProfileRow>(),
           supabase
@@ -187,7 +183,7 @@ export default function ConversationPage() {
             id: buddyId,
             pseudo,
             studyLevel: buddyRes.data?.study_level?.trim() || "Niveau non precise",
-            initials: getInitials(pseudo),
+            avatarPath: buddyRes.data?.avatar_path ?? null,
           },
           messages: (messagesRes.data ?? []).map((row) => toMessageViewModel(row)),
         });
@@ -311,7 +307,7 @@ export default function ConversationPage() {
           profileId={state.buddy.id}
           pseudo={state.buddy.pseudo}
           studyLevel={state.buddy.studyLevel}
-          initials={state.buddy.initials}
+          avatarPath={state.buddy.avatarPath}
         />
         <MessagesList messages={state.messages} currentUserId={state.currentUserId} />
         {sendError ? (

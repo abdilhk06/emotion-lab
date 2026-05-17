@@ -9,6 +9,7 @@ type ProfileRow = {
   id: string;
   pseudo: string | null;
   study_level: string | null;
+  avatar_path: string | null;
 };
 
 type BuddyRequestRow = {
@@ -49,10 +50,11 @@ function normalizeRequest(row: BuddyRequestRow, mode: ViewTab): BuddyRequestItem
     message: row.message,
     status: row.status,
     createdAt: row.created_at,
-    profile: {
-      pseudo,
-      studyLevel: sourceProfile?.study_level?.trim() || "Niveau non precise",
-    },
+      profile: {
+        pseudo,
+        studyLevel: sourceProfile?.study_level?.trim() || "Niveau non precise",
+        avatarPath: sourceProfile?.avatar_path ?? null,
+      },
   };
 }
 
@@ -83,7 +85,7 @@ export function RequestTabs() {
         }
 
         const selection =
-          "id, sender_id, receiver_id, message, status, created_at, sender_profile:profiles!buddy_requests_sender_id_fkey(id, pseudo, study_level), receiver_profile:profiles!buddy_requests_receiver_id_fkey(id, pseudo, study_level)";
+          "id, sender_id, receiver_id, message, status, created_at, sender_profile:profiles!buddy_requests_sender_id_fkey(id, pseudo, study_level, avatar_path), receiver_profile:profiles!buddy_requests_receiver_id_fkey(id, pseudo, study_level, avatar_path)";
 
         const [receivedRes, sentRes] = await Promise.all([
           supabase

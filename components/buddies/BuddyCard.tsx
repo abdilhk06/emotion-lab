@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export type BuddyRequestStatus = "none" | "pending" | "accepted" | "rejected";
 
@@ -13,13 +14,8 @@ type BuddyCardProps = {
   compatibility: number;
   requestStatus: BuddyRequestStatus;
   mbti?: string;
+  avatarPath?: string | null;
 };
-
-function initialsFromPseudo(pseudo: string): string {
-  const trimmed = pseudo.trim();
-  if (!trimmed) return "?";
-  return trimmed.replace(/^@/, "").charAt(0).toUpperCase();
-}
 
 function getCtaLabel(status: BuddyRequestStatus): string {
   if (status === "pending") return "Demande en attente";
@@ -27,7 +23,7 @@ function getCtaLabel(status: BuddyRequestStatus): string {
   return "Voir le profil";
 }
 
-export function BuddyCard({ id, pseudo, studyLevel, bio, sharedHobbies, compatibility, requestStatus, mbti = "MBTI" }: BuddyCardProps) {
+export function BuddyCard({ id, pseudo, studyLevel, bio, sharedHobbies, compatibility, requestStatus, mbti = "MBTI", avatarPath = null }: BuddyCardProps) {
   const href = `/buddies/${id}`;
   const ctaLabel = getCtaLabel(requestStatus);
 
@@ -36,9 +32,7 @@ export function BuddyCard({ id, pseudo, studyLevel, bio, sharedHobbies, compatib
       <span className="compat-badge">{compatibility}%</span>
       <Link className="card-main-link" href={href} aria-label={`Voir le profil de ${pseudo}`}>
         <div className="card-header">
-          <div className="avatar" aria-hidden="true">
-            {initialsFromPseudo(pseudo)}
-          </div>
+          <UserAvatar name={pseudo} avatarPath={avatarPath} size={50} className="avatar" />
           <div>
             <h3>{pseudo}</h3>
             <span className="meta">{mbti} · {studyLevel}</span>

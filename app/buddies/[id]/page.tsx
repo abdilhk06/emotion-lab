@@ -24,6 +24,7 @@ type ProfileRow = {
   looking_for: string | null;
   study_level: string | null;
   is_visible: boolean | null;
+  avatar_path: string | null;
 };
 
 type ResultRow = {
@@ -58,6 +59,7 @@ type ReadyState = {
   compatibility: number;
   existingRequestStatus: "pending" | "accepted" | null;
   conversationId: string | null;
+  avatarPath: string | null;
 };
 
 type PageState =
@@ -90,7 +92,7 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
         const [buddyProfileRes, myProfileRes, resultsRes, hobbiesRes, buddyRequestRes, conversationRes] = await Promise.all([
           supabase
             .from("profiles")
-            .select("id, pseudo, bio, looking_for, study_level, is_visible")
+            .select("id, pseudo, bio, looking_for, study_level, is_visible, avatar_path")
             .eq("id", id)
             .maybeSingle<ProfileRow>(),
           supabase
@@ -173,6 +175,7 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
             compatibility,
             existingRequestStatus: (buddyRequestRes.data?.[0]?.status as "pending" | "accepted" | undefined) ?? null,
             conversationId: conversationRes?.id ?? null,
+            avatarPath: buddyProfile.avatar_path ?? null,
           },
         });
       } catch (error) {
@@ -301,6 +304,7 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
           mbtiCode={data.mbtiCode}
           mbtiName={data.mbtiName}
           compatibility={data.compatibility}
+          avatarPath={data.avatarPath}
         />
         <BioCard title="Sa bio" content={data.bio} fallback="Cette personne n'a pas encore ajoute de bio." />
         <BioCard title="Ce qu'elle cherche" content={data.lookingFor} fallback="Objectif de binome non precise pour le moment." />

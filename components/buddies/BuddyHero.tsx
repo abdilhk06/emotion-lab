@@ -1,6 +1,7 @@
 "use client";
 
 import { CompatibilityBadge } from "@/components/buddies/CompatibilityBadge";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type BuddyHeroProps = {
   pseudo: string;
@@ -8,20 +9,13 @@ type BuddyHeroProps = {
   mbtiCode: string | null;
   mbtiName: string | null;
   compatibility: number;
+  avatarPath: string | null;
 };
 
-function initialsFromPseudo(pseudo: string): string {
-  const clean = pseudo.trim().replace(/^@/, "");
-  if (!clean) return "?";
-  return clean.charAt(0).toUpperCase();
-}
-
-export function BuddyHero({ pseudo, studyLevel, mbtiCode, mbtiName, compatibility }: BuddyHeroProps) {
+export function BuddyHero({ pseudo, studyLevel, mbtiCode, mbtiName, compatibility, avatarPath }: BuddyHeroProps) {
   return (
     <section className="buddy-hero">
-      <div className="buddy-hero-avatar" aria-hidden="true">
-        {initialsFromPseudo(pseudo)}
-      </div>
+      <UserAvatar name={pseudo} avatarPath={avatarPath} size={120} className="buddy-hero-avatar" />
       <h2>{pseudo}</h2>
       <p className="buddy-hero-meta">
         {mbtiCode ? `${mbtiCode}${mbtiName ? ` - ${mbtiName}` : ""}` : "Profil MBTI non renseigne"} - {studyLevel}
