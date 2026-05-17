@@ -22,8 +22,8 @@ export function isCrisisMessage(input: string): boolean {
 
 export function detectChatMode(input: string): "emotional_support" | "planning" | "hybrid" {
   const text = input.toLowerCase();
-  const planningHits = /(plan|todo|to-do|schedule|revision|deadline|organis|checklist|priorit)/i.test(text);
-  const emotionalHits = /(stress|anx|triste|peur|deprime|epuise|burn|emotion|angoiss|deborde)/i.test(text);
+  const planningHits = /(plan|todo|to-do|schedule|r[eé]vision|r[eé]viser|deadline|organis|checklist|priorit|t[aâ]che)/i.test(text);
+  const emotionalHits = /(stress|anx|triste|peur|d[eé]prime|[eé]puise|burn|[eé]motion|angoiss|d[eé]bord[eé])/i.test(text);
   if (planningHits && emotionalHits) return "hybrid";
   if (planningHits) return "planning";
   if (emotionalHits) return "emotional_support";

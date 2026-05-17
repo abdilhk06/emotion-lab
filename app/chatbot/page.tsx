@@ -25,8 +25,56 @@ type PlanningIntake = {
   nightWorkPreference?: "yes" | "no" | "sometimes";
 };
 
+type UserContext = {
+  hasPersonalizationData: boolean;
+  stressScore: number | null;
+  organizationBalanceScore: number | null;
+  mbtiCode: string | null;
+  mbtiName: string | null;
+  bigFiveScores: unknown | null;
+  hobbies: string[];
+  studyLevel: string | null;
+  pseudo: string | null;
+  profilePreferences: {
+    bio: string | null;
+    lookingFor: string | null;
+  };
+};
+
 const QUICK_REPLIES = ["J'ai besoin de soutien", "Planifier ma semaine", "Mode hybride: moral + planning", "Transformer ma todo en plan"] as const;
 const SAFETY_MESSAGE = "Cet assistant combine soutien emotionnel et planification personnalisee. En cas d'urgence, contacte un service d'aide ou une personne de confiance.";
+
+function cleanOptional(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function inferPlanningIntake(previous: PlanningIntake, value: string): PlanningIntake {
+  const next: PlanningIntake = { ...previous, taskList: [...previous.taskList] };
+  const normalized = value.toLowerCase();
+  const taskSource = value.replace(/^(todo|taches|tasks?)\s*:/i, "");
+  const splitTasks = taskSource
+    .split(/\n|;|,(?=\s*\S)|\s(?:et|puis)\s/gi)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 2);
+
+  if (splitTasks.length > 1 || /todo|taches|je dois|il faut|revision|reviser|faire|rendre/i.test(value)) {
+    next.taskList = Array.from(new Set([...next.taskList, ...splitTasks]));
+  }
+
+  const hours = value.match(/(\d+(?:[,.]\d+)?)\s*(?:h|heures?|hours?)/i);
+  if (hours) next.availableHours = Number(hours[1].replace(",", "."));
+
+  const dateMatch = value.match(/\b(?:demain|apres-demain|aujourd'hui|ce soir|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\b/i);
+  if (dateMatch || /deadline|avant|pour le|a rendre|rendre/i.test(value)) next.deadline = value;
+
+  if (/matin|apres-midi|aprem|soir|nuit|night|morning|evening/i.test(value)) next.preferredStudyTime = value;
+  if (/sommeil|dorm|coucher|reveil|sleep/i.test(value)) next.sleepConstraints = value;
+  if (/facile|moyen|difficile|dur|complexe|easy|hard/i.test(value)) next.taskDifficulty = value;
+  if (/nuit|night/i.test(value)) next.nightWorkPreference = /pas la nuit|no night|jamais la nuit/i.test(normalized) ? "no" : "yes";
+
+  return next;
+}
 
 export default function ChatbotPage() {
   const router = useRouter();
@@ -34,7 +82,7 @@ export default function ChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [userContext, setUserContext] = useState<Record<string, unknown> | null>(null);
+  const [userContext, setUserContext] = useState<UserContext | null>(null);
   const [planningIntake, setPlanningIntake] = useState<PlanningIntake>({ taskList: [] });
   const endRef = useRef<HTMLDivElement | null>(null);
 
@@ -44,7 +92,7 @@ export default function ChatbotPage() {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return router.replace("/login");
 
-      const [resultRes, hobbiesRes] = await Promise.all([
+      const [resultRes, profileRes, hobbiesRes] = await Promise.all([
         supabase
           .from("test_results")
           .select("mbti_code, mbti_name, big_five_scores, stress_score, balance_score, created_at")
@@ -52,17 +100,24 @@ export default function ChatbotPage() {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase.from("profiles").select("pseudo, study_level, bio, looking_for").eq("id", auth.user.id).maybeSingle(),
         supabase.from("user_hobbies").select("hobby").eq("user_id", auth.user.id),
       ]);
 
       setUserContext({
-        hasPersonalizationData: Boolean(resultRes.data),
+        hasPersonalizationData: Boolean(resultRes.data || profileRes.data),
         stressScore: resultRes.data?.stress_score ?? null,
         organizationBalanceScore: resultRes.data?.balance_score ?? null,
         mbtiCode: resultRes.data?.mbti_code ?? null,
         mbtiName: resultRes.data?.mbti_name ?? null,
         bigFiveScores: resultRes.data?.big_five_scores ?? null,
         hobbies: (hobbiesRes.data ?? []).map((h) => h.hobby).filter(Boolean),
+        studyLevel: cleanOptional(profileRes.data?.study_level),
+        pseudo: cleanOptional(profileRes.data?.pseudo),
+        profilePreferences: {
+          bio: cleanOptional(profileRes.data?.bio),
+          lookingFor: cleanOptional(profileRes.data?.looking_for),
+        },
       });
       setIsReady(true);
     };
@@ -74,36 +129,13 @@ export default function ChatbotPage() {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, isTyping]);
 
-  const updateIntakeFromText = (value: string) => {
-    const next = { ...planningIntake };
-    if (value.includes(",") || value.toLowerCase().includes("todo")) next.taskList = value.split(",").map((x) => x.trim()).filter(Boolean);
-    const hours = value.match(/(\d+)\s*h/i);
-    if (hours) next.availableHours = Number(hours[1]);
-    if (/matin|apres-midi|soir|nuit/i.test(value)) next.preferredStudyTime = value;
-    if (/sommeil|dorm/i.test(value)) next.sleepConstraints = value;
-    if (/facile|moyen|difficile/i.test(value)) next.taskDifficulty = value;
-    if (/nuit/i.test(value)) next.nightWorkPreference = /pas la nuit/i.test(value) ? "no" : "yes";
-    if (/deadline|avant|pour le/i.test(value)) next.deadline = value;
-    setPlanningIntake(next);
-  };
-
-  const getInputGaps = () => {
-    const gaps: string[] = [];
-    if (planningIntake.taskList.length === 0) gaps.push("task list");
-    if (!planningIntake.deadline) gaps.push("deadline");
-    if (!planningIntake.availableHours) gaps.push("available hours");
-    if (!planningIntake.preferredStudyTime) gaps.push("preferred study time");
-    if (!planningIntake.sleepConstraints) gaps.push("sleep constraints");
-    if (!planningIntake.taskDifficulty) gaps.push("task difficulty");
-    if (!planningIntake.nightWorkPreference) gaps.push("night-work preference");
-    return gaps;
-  };
-
   const sendMessage = async (rawValue: string) => {
     const value = rawValue.trim();
     if (!value || isTyping) return;
+    if (!isReady) return;
 
-    updateIntakeFromText(value);
+    const nextPlanningIntake = inferPlanningIntake(planningIntake, value);
+    setPlanningIntake(nextPlanningIntake);
     const mode: PlanMode = detectChatMode(value);
     const userMessage: ChatMessage = { id: `${Date.now()}-u`, role: "user", text: value };
     setMessages((previous) => [...previous, userMessage]);
@@ -112,21 +144,6 @@ export default function ChatbotPage() {
     if (isCrisisMessage(value)) {
       setMessages((previous) => [...previous, { id: `${Date.now()}-b`, role: "bot", text: LOCAL_CRISIS_RESPONSE }]);
       return;
-    }
-
-    if (mode !== "emotional_support") {
-      const gaps = getInputGaps();
-      if (gaps.length > 0) {
-        setMessages((previous) => [
-          ...previous,
-          {
-            id: `${Date.now()}-b`,
-            role: "bot",
-            text: `Avant plan complet, il me manque: ${gaps.join(", ")}. Donne ces infos en une reponse.`,
-          },
-        ]);
-        return;
-      }
     }
 
     setIsTyping(true);
@@ -143,7 +160,7 @@ export default function ChatbotPage() {
           message: value,
           context,
           mode,
-          userContext: { ...(userContext ?? {}), planningPreferences: planningIntake },
+          userContext: { ...(userContext ?? {}), planningPreferences: nextPlanningIntake },
         }),
       });
 
@@ -152,7 +169,7 @@ export default function ChatbotPage() {
       if (payload.crisis) setMessages((previous) => [...previous, { id: `${Date.now()}-b`, role: "bot", text: payload.message ?? LOCAL_CRISIS_RESPONSE }]);
       else {
         const plan: PlannerResponse = payload.plan;
-        setMessages((previous) => [...previous, { id: `${Date.now()}-b`, role: "bot", text: plan.summary, plan }]);
+        setMessages((previous) => [...previous, { id: `${Date.now()}-b`, role: "bot", text: plan.summary, plan: plan.inputGaps?.length ? undefined : plan }]);
       }
     } catch {
       setMessages((previous) => [...previous, { id: `${Date.now()}-b`, role: "bot", text: "Je n'arrive pas a repondre maintenant. Reessaie avec tes infos principales." }]);

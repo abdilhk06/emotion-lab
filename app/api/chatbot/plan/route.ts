@@ -5,7 +5,12 @@ import { detectChatMode, isCrisisMessage, LOCAL_CRISIS_RESPONSE } from "@/lib/ch
 import { planRequestSchema, planResponseSchema } from "@/lib/chatbot/planner-schema";
 
 const SYSTEM_INSTRUCTION =
-  "Tu es assistant double role: soutien emotionnel + planification personnalisee pour etudiant·e francophone. Toujours commencer par securite: si detresse severe, repondre soutien + ressources, ne pas pousser productivite. Trois modes: emotional_support, planning, hybrid. En planning, demander uniquement infos manquantes avant plan complet. Personnaliser avec stress, organisation, MBTI, Big Five, hobbies et preferences. Regles plan: stress eleve => blocs plus courts, plus de pauses, charge quotidienne reduite; organisation elevee => checklist structuree + sequence serree; organisation basse => etapes simples + peu de taches paralleles; night preference => deep-work la nuit sans nuire sommeil; extraversion/introversion => proposer travail groupe/solo utile. Si pas de resultats test: expliquer personnalisation limitee, poser mini questions profilage, puis plan baseline prudent.";
+  "Tu es assistant double role: soutien emotionnel + planification personnalisee pour etudiant·e francophone. Reponds dans la langue de l'utilisateur, principalement en francais pour cette app. Toujours commencer par securite: si detresse severe, repondre soutien + ressources, ne pas pousser productivite. Tu recois userContext avec donnees reelles Supabase. Tu dois utiliser les donnees connues avant toute question: si stressScore existe, n'appelle pas ca inconnu et ne demande pas si la personne est stressee; adapte directement. Si organizationBalanceScore, MBTI, Big Five, hobbies, studyLevel, pseudo ou profilePreferences existent, les integrer sobrement. Pour planning, inferer taches, deadlines, heures et contraintes depuis message + contexte + planningPreferences. Ne demander que l'information indispensable qui manque encore. Si une info manque, poser une seule courte question a la fois en francais, mettre inputGaps avec un seul item, et ne pas generer de faux planning complet. Trois modes: emotional_support, planning, hybrid. Regles plan: stress eleve => blocs plus courts, plus de pauses, charge quotidienne reduite; organisation elevee => checklist structuree + sequence serree; organisation basse => etapes simples + peu de taches paralleles; preference nuit => deep-work le soir/nuit mais sommeil protege; extraversion/introversion => proposer travail groupe/solo quand utile. Si aucun resultat/profil n'existe, dire que la personnalisation est limitee, poser une question de profilage rapide, puis proposer un plan baseline prudent si assez d'informations de planning sont deja donnees.";
+
+function cleanOptional(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
 
 const responseSchema = {
   type: "object",
@@ -83,7 +88,7 @@ export async function POST(request: Request) {
     const { message, context, userContext, mode } = parsed.data;
     if (isCrisisMessage(message)) return NextResponse.json({ crisis: true, message: LOCAL_CRISIS_RESPONSE }, { status: 200 });
 
-    const [latestResultRes, hobbiesRes] = await Promise.all([
+    const [latestResultRes, profileRes, hobbiesRes] = await Promise.all([
       supabase
         .from("test_results")
         .select("mbti_code, mbti_name, big_five_scores, stress_score, balance_score, created_at")
@@ -91,25 +96,48 @@ export async function POST(request: Request) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase.from("profiles").select("pseudo, study_level, bio, looking_for").eq("id", authData.user.id).maybeSingle(),
       supabase.from("user_hobbies").select("hobby").eq("user_id", authData.user.id),
     ]);
 
-    const personalization = {
-      hasPersonalizationData: Boolean(latestResultRes.data),
+    const serverUserContext = {
+      hasPersonalizationData: Boolean(latestResultRes.data || profileRes.data),
       stressScore: latestResultRes.data?.stress_score ?? null,
       organizationBalanceScore: latestResultRes.data?.balance_score ?? null,
       mbtiCode: latestResultRes.data?.mbti_code ?? null,
       mbtiName: latestResultRes.data?.mbti_name ?? null,
       bigFiveScores: latestResultRes.data?.big_five_scores ?? null,
       hobbies: (hobbiesRes.data ?? []).map((h) => h.hobby).filter(Boolean),
+      studyLevel: cleanOptional(profileRes.data?.study_level),
+      pseudo: cleanOptional(profileRes.data?.pseudo),
+      profilePreferences: {
+        bio: cleanOptional(profileRes.data?.bio),
+        lookingFor: cleanOptional(profileRes.data?.looking_for),
+      },
       planningPreferences: userContext?.planningPreferences,
     };
+    const effectiveUserContext = { ...(userContext ?? {}), ...serverUserContext };
 
     const ai = new GoogleGenAI({ apiKey: geminiKey });
     const result = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       config: { systemInstruction: SYSTEM_INSTRUCTION, responseMimeType: "application/json", responseSchema },
-      contents: JSON.stringify({ message, context, mode: mode ?? detectChatMode(message), userContext: { ...personalization, ...userContext } }, null, 2),
+      contents: JSON.stringify(
+        {
+          message,
+          context,
+          mode: mode ?? detectChatMode(message),
+          userContext: effectiveUserContext,
+          responseRules: [
+            "Utilise d'abord userContext. Ne redemande jamais une donnee deja presente.",
+            "Pour une demande planning, inferer depuis message et context avant de poser une question.",
+            "Si question necessaire, poser exactement une question courte, inputGaps doit contenir exactement un item.",
+            "Si hasPersonalizationData=false, dire que la personnalisation est limitee et demander une question profilage rapide.",
+          ],
+        },
+        null,
+        2
+      ),
     });
 
     const text = result.text?.trim();

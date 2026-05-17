@@ -93,6 +93,14 @@ export const planRequestSchema = z.object({
       mbtiName: z.string().nullable(),
       bigFiveScores: bigFiveSchema.nullable(),
       hobbies: z.array(z.string()),
+      studyLevel: z.string().nullable().optional(),
+      pseudo: z.string().nullable().optional(),
+      profilePreferences: z
+        .object({
+          bio: z.string().nullable().optional(),
+          lookingFor: z.string().nullable().optional(),
+        })
+        .optional(),
       planningPreferences: planningPreferencesSchema,
     })
     .optional(),
