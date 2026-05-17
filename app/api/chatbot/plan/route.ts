@@ -1,0 +1,83 @@
+import { GoogleGenAI } from "@google/genai";
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { isCrisisMessage, LOCAL_CRISIS_RESPONSE } from "@/lib/chatbot/safety";
+import { planRequestSchema, planResponseSchema } from "@/lib/chatbot/planner-schema";
+
+const SYSTEM_INSTRUCTION =
+  "Tu es un coach de planification pour etudiant·e francophone. Ton ton est chaleureux, pratique, concis et actionnable. Tu aides a transformer objectifs, todo lists et charge de revisions en plan concret. Tu n'offres pas de conseils medicaux, psychologiques cliniques, juridiques ou financiers.";
+
+const responseSchema = {
+  type: "object",
+  required: ["summary", "objective", "timeframe", "planSections", "todayChecklist", "weeklyPlan", "habits", "risks", "nextAction", "safetyNote"],
+  properties: {
+    summary: { type: "string" },
+    objective: { type: "string" },
+    timeframe: { type: "string" },
+    planSections: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["title", "description", "steps"],
+        properties: { title: { type: "string" }, description: { type: "string" }, steps: { type: "array", items: { type: "string" } } },
+      },
+    },
+    todayChecklist: { type: "array", items: { type: "string" } },
+    weeklyPlan: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["day", "focus", "tasks"],
+        properties: { day: { type: "string" }, focus: { type: "string" }, tasks: { type: "array", items: { type: "string" } } },
+      },
+    },
+    habits: { type: "array", items: { type: "string" } },
+    risks: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["risk", "prevention"],
+        properties: { risk: { type: "string" }, prevention: { type: "string" } },
+      },
+    },
+    nextAction: { type: "string" },
+    safetyNote: { type: "string" },
+  },
+} as const;
+
+export async function POST(request: Request) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!supabaseUrl || !supabaseAnonKey || !geminiKey) return NextResponse.json({ error: "Configuration serveur incomplete." }, { status: 500 });
+
+    const authHeader = request.headers.get("authorization") ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) return NextResponse.json({ error: "Non autorise." }, { status: 401 });
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authData.user) return NextResponse.json({ error: "Non autorise." }, { status: 401 });
+
+    const parsed = planRequestSchema.safeParse(await request.json());
+    if (!parsed.success) return NextResponse.json({ error: "Requete invalide." }, { status: 400 });
+
+    const { message, context } = parsed.data;
+    if (isCrisisMessage(message)) return NextResponse.json({ crisis: true, message: LOCAL_CRISIS_RESPONSE }, { status: 200 });
+
+    const ai = new GoogleGenAI({ apiKey: geminiKey });
+    const result = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      config: { systemInstruction: SYSTEM_INSTRUCTION, responseMimeType: "application/json", responseSchema },
+      contents: JSON.stringify({ message, context }, null, 2),
+    });
+
+    const text = result.text?.trim();
+    if (!text) return NextResponse.json({ error: "Aucune reponse du modele." }, { status: 502 });
+
+    return NextResponse.json({ crisis: false, plan: planResponseSchema.parse(JSON.parse(text)) });
+  } catch {
+    return NextResponse.json({ error: "Impossible de generer le plan pour le moment." }, { status: 500 });
+  }
+}

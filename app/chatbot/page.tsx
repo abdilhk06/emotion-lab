@@ -9,50 +9,27 @@ import { ChatbotHeader } from "@/components/chatbot/ChatbotHeader";
 import { QuickReplies } from "@/components/chatbot/QuickReplies";
 import { UserMessage } from "@/components/chatbot/UserMessage";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import type { PlannerResponse } from "@/lib/chatbot/planner-schema";
+import { isCrisisMessage, LOCAL_CRISIS_RESPONSE } from "@/lib/chatbot/safety";
 
 type ChatMessage = {
   id: string;
   role: "user" | "bot";
   text: string;
+  plan?: PlannerResponse;
 };
 
-const QUICK_REPLIES = [
-  "Je suis stressé(e)",
-  "J’ai du mal à dormir",
-  "Je veux parler à quelqu’un",
-  "Je veux un exercice rapide",
-] as const;
+const QUICK_REPLIES = ["Planifier ma semaine", "Organiser mes revisions", "Transformer ma todo en plan", "Je suis deborde·e"] as const;
 
 const SAFETY_MESSAGE =
-  "Cet assistant ne remplace pas un professionnel de santé. En cas d'urgence, contacte un service d'aide ou une personne de confiance.";
-
-function buildSafeResponse(input: string) {
-  const value = input.toLowerCase();
-
-  if (value.includes("stress")) {
-    return "Merci de me le dire. Quand le stress monte, fais une pause de 60 secondes: inspire 4 secondes, bloque 4 secondes, expire 6 secondes, puis recommence 5 fois. Si tu te sens en danger ou depasse(e), contacte tout de suite un service d'urgence ou une personne de confiance.";
-  }
-
-  if (value.includes("dormir") || value.includes("sommeil")) {
-    return "Le sommeil peut vite se deregler quand la charge mentale est forte. Essaie un rituel court ce soir: ecran coupe 30 minutes avant, respiration lente 5 minutes, et note tes pensees sur papier. Si les nuits deviennent tres difficiles ou que tu te sens en detresse, parle rapidement a un professionnel ou a un service d'aide.";
-  }
-
-  if (value.includes("parler") || value.includes("quelqu")) {
-    return "Tu n'es pas seul(e). Parler a quelqu'un de confiance peut vraiment soulager: un proche, un buddy, ou un service d'ecoute. Si la situation est urgente ou que tu crains pour ta securite, contacte immediatement un service d'urgence.";
-  }
-
-  if (value.includes("exercice") || value.includes("rapide")) {
-    return "Exercice express (2 minutes): pose les pieds au sol, relache les epaules, puis nomme 5 choses que tu vois, 4 que tu touches, 3 que tu entends, 2 que tu sens, 1 que tu goutes. Cet ancrage peut aider a reduire la tension dans l'instant.";
-  }
-
-  return "Merci pour ton message. Je peux te proposer un soutien general, mais je ne pose pas de diagnostic medical. Si tu te sens en danger ou submerge(e), contacte sans attendre une personne de confiance ou un service d'urgence.";
-}
+  "Cet assistant ne remplace pas un professionnel de sante. En cas d'urgence, contacte un service d'aide ou une personne de confiance.";
 
 export default function ChatbotPage() {
   const router = useRouter();
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -75,117 +52,100 @@ export default function ChatbotPage() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length]);
+  }, [messages.length, isTyping]);
 
-  const sendMessage = (rawValue: string) => {
+  const sendMessage = async (rawValue: string) => {
     const value = rawValue.trim();
-    if (!value) {
+    if (!value || isTyping) return;
+
+    const userMessage: ChatMessage = { id: `${Date.now()}-u`, role: "user", text: value };
+    setMessages((previous) => [...previous, userMessage]);
+    setInputValue("");
+
+    if (isCrisisMessage(value)) {
+      setMessages((previous) => [...previous, { id: `${Date.now()}-b`, role: "bot", text: LOCAL_CRISIS_RESPONSE }]);
       return;
     }
 
-    const userMessage: ChatMessage = {
-      id: `${Date.now()}-u`,
-      role: "user",
-      text: value,
-    };
-    const botMessage: ChatMessage = {
-      id: `${Date.now()}-b`,
-      role: "bot",
-      text: buildSafeResponse(value),
-    };
+    setIsTyping(true);
+    try {
+      const supabase = getSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    setMessages((previous) => [...previous, userMessage, botMessage]);
-    setInputValue("");
+      if (!session?.access_token) {
+        router.replace("/login");
+        return;
+      }
+
+      const context = messages.slice(-6).map((message) => ({ role: message.role, text: message.text }));
+
+      const response = await fetch("/api/chatbot/plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ message: value, context }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) throw new Error("api_error");
+
+      if (payload.crisis) {
+        setMessages((previous) => [...previous, { id: `${Date.now()}-b`, role: "bot", text: payload.message ?? LOCAL_CRISIS_RESPONSE }]);
+      } else {
+        const plan: PlannerResponse = payload.plan;
+        setMessages((previous) => [...previous, { id: `${Date.now()}-b`, role: "bot", text: plan.summary, plan }]);
+      }
+    } catch {
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: `${Date.now()}-b`,
+          role: "bot",
+          text: "Je n'arrive pas a generer ton plan maintenant. Reessaie dans un instant avec ton objectif principal.",
+        },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
-  const isSendDisabled = useMemo(() => inputValue.trim().length === 0, [inputValue]);
+  const isSendDisabled = useMemo(() => inputValue.trim().length === 0 || isTyping, [inputValue, isTyping]);
 
   return (
     <AppLayout title="Chatbot">
       <div className="chatbot-page">
         <ChatbotHeader />
-
         <p className="chatbot-safety-banner">{SAFETY_MESSAGE}</p>
-
         <section className="chatbot-messages" aria-live="polite" aria-label="Conversation">
           {!isReady ? (
             <p className="chatbot-empty-state">Chargement de ton assistant...</p>
           ) : messages.length === 0 ? (
-            <p className="chatbot-empty-state">
-              Ecris un message ou utilise une reponse rapide pour commencer. Je reponds uniquement avec un script local de soutien.
-            </p>
+            <p className="chatbot-empty-state">Ecris ton objectif, ta todo, ou ta charge de revisions et je te retourne un plan actionnable.</p>
           ) : (
             messages.map((message) =>
-              message.role === "bot" ? <BotMessage key={message.id} message={message.text} /> : <UserMessage key={message.id} message={message.text} />
+              message.role === "bot" ? <BotMessage key={message.id} message={message.text} plan={message.plan} /> : <UserMessage key={message.id} message={message.text} />
             )
           )}
+          {isTyping ? <p className="chatbot-typing">Je prepare ton plan...</p> : null}
           <div ref={endRef} />
         </section>
-
-        <QuickReplies options={QUICK_REPLIES} onSelect={sendMessage} />
-
-        <ChatbotFooter value={inputValue} onChange={setInputValue} onSend={() => sendMessage(inputValue)} disabled={isSendDisabled} />
-
-        <p className="chatbot-local-note">Emotion Bot suit un script pre-ecrit. Les echanges ne sont pas stockes dans cette version.</p>
+        <QuickReplies options={QUICK_REPLIES} onSelect={(value) => void sendMessage(value)} />
+        <ChatbotFooter value={inputValue} onChange={setInputValue} onSend={() => void sendMessage(inputValue)} disabled={isSendDisabled} />
+        <p className="chatbot-local-note">Les echanges ne sont pas stockes dans cette version. Assistant de planification uniquement, pas de support medical/professionnel.</p>
       </div>
 
       <style jsx>{`
-        .chatbot-page {
-          display: grid;
-          gap: 12px;
-          min-height: min(760px, calc(100vh - 180px));
-        }
-
-        .chatbot-safety-banner {
-          margin: 0;
-          padding: 12px 14px;
-          border-radius: 14px;
-          border: 1px solid #f0ccd2;
-          background: #fff7f8;
-          color: #7f2238;
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .chatbot-messages {
-          display: grid;
-          gap: 10px;
-          align-content: start;
-          overflow: auto;
-          background: linear-gradient(180deg, #fcf9fd 0%, #f4f8fb 100%);
-          border: 1px solid var(--bordure);
-          border-radius: 18px;
-          padding: 14px;
-          min-height: 260px;
-          max-height: min(52vh, 560px);
-        }
-
-        .chatbot-empty-state {
-          margin: 0;
-          padding: 18px;
-          border-radius: 14px;
-          border: 1px dashed #d4c4e2;
-          background: #fff;
-          color: var(--texte-gris);
-          text-align: center;
-        }
-
-        .chatbot-local-note {
-          margin: 0;
-          font-size: 13px;
-          color: var(--texte-clair);
-          text-align: center;
-        }
-
-        @media (max-width: 1023px) {
-          .chatbot-page {
-            min-height: auto;
-          }
-
-          .chatbot-messages {
-            max-height: 50vh;
-          }
-        }
+        .chatbot-page { display: grid; gap: 12px; min-height: min(760px, calc(100vh - 180px)); }
+        .chatbot-safety-banner { margin: 0; padding: 12px 14px; border-radius: 14px; border: 1px solid #f0ccd2; background: #fff7f8; color: #7f2238; font-size: 14px; font-weight: 600; }
+        .chatbot-messages { display: grid; gap: 10px; align-content: start; overflow: auto; background: linear-gradient(180deg, #fcf9fd 0%, #f4f8fb 100%); border: 1px solid var(--bordure); border-radius: 18px; padding: 14px; min-height: 260px; max-height: min(52vh, 560px); }
+        .chatbot-empty-state { margin: 0; padding: 18px; border-radius: 14px; border: 1px dashed #d4c4e2; background: #fff; color: var(--texte-gris); text-align: center; }
+        .chatbot-typing { margin: 0; color: var(--texte-clair); font-size: 13px; }
+        .chatbot-local-note { margin: 0; font-size: 13px; color: var(--texte-clair); text-align: center; }
+        @media (max-width: 1023px) { .chatbot-page { min-height: auto; } .chatbot-messages { max-height: 50vh; } }
       `}</style>
     </AppLayout>
   );
