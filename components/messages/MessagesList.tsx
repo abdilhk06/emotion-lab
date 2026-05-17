@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { MessageBubble } from "@/components/messages/MessageBubble";
 
 type MessageItem = {
@@ -21,6 +22,14 @@ function formatMessageTime(value: string): string {
 }
 
 export function MessagesList({ messages, currentUserId }: MessagesListProps) {
+  const listRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
+  }, [messages]);
+
   if (messages.length === 0) {
     return (
       <section className="state-card" role="status">
@@ -50,7 +59,7 @@ export function MessagesList({ messages, currentUserId }: MessagesListProps) {
   }
 
   return (
-    <section className="messages-list" aria-label="Messages de la conversation">
+    <section ref={listRef} className="messages-list" aria-label="Messages de la conversation">
       {messages.map((message) => (
         <MessageBubble
           key={message.id}

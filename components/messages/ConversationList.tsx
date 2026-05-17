@@ -111,6 +111,9 @@ export function ConversationList() {
   const [query, setQuery] = useState("");
 
   useEffect(() => {
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+
     const run = async () => {
       setState({ status: "loading" });
 
@@ -134,7 +137,7 @@ export function ConversationList() {
 
         const conversations = conversationsRes.data ?? [];
         if (conversations.length === 0) {
-          setState({ status: "ready", items: [] });
+          if (!disposed) setState({ status: "ready", items: [] });
           return;
         }
 
@@ -198,7 +201,47 @@ export function ConversationList() {
           .filter((item): item is ConversationViewModel => Boolean(item))
           .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
 
+        if (disposed) return;
+
         setState({ status: "ready", items });
+
+        const conversationIds = new Set(conversations.map((conversation) => conversation.id));
+        const channel = supabase
+          .channel(`messages:list:${user.id}`)
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "messages" },
+            (payload) => {
+              const row = payload.new as MessageRow;
+              if (!conversationIds.has(row.conversation_id)) return;
+
+              setState((prev) => {
+                if (prev.status !== "ready") return prev;
+
+                const nextItems = prev.items.map((item) =>
+                  item.id === row.conversation_id
+                    ? {
+                        ...item,
+                        preview: row.body?.trim() || "Aucun message pour le moment.",
+                        lastMessageAt: row.created_at,
+                      }
+                    : item
+                );
+
+                return {
+                  status: "ready",
+                  items: nextItems.sort(
+                    (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+                  ),
+                };
+              });
+            }
+          )
+          .subscribe();
+
+        return () => {
+          void supabase.removeChannel(channel);
+        };
       } catch (error) {
         setState({
           status: "error",
@@ -207,7 +250,18 @@ export function ConversationList() {
       }
     };
 
-    void run();
+    void run().then((nextCleanup) => {
+      if (disposed) {
+        nextCleanup?.();
+        return;
+      }
+      cleanup = nextCleanup;
+    });
+
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
   }, [router]);
 
   const content = useMemo(() => {

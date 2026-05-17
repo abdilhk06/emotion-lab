@@ -39,8 +39,10 @@ type ConversationState =
       status: "ready";
       currentUserId: string;
       buddy: { id: string; pseudo: string; studyLevel: string; initials: string };
-      messages: { id: string; senderId: string; content: string; createdAt: string }[];
+      messages: MessageViewModel[];
     };
+
+type MessageViewModel = { id: string; senderId: string; content: string; createdAt: string };
 
 function formatPseudo(value: string | null | undefined): string {
   const trimmed = value?.trim() ?? "";
@@ -79,6 +81,23 @@ async function insertMessage(
   return result.data;
 }
 
+function toMessageViewModel(row: MessageRow, fallbackContent = ""): MessageViewModel {
+  return {
+    id: row.id,
+    senderId: row.sender_id,
+    content: row.body?.trim() || fallbackContent,
+    createdAt: row.created_at,
+  };
+}
+
+function appendMessageUnique(messages: MessageViewModel[], message: MessageViewModel): MessageViewModel[] {
+  if (messages.some((item) => item.id === message.id)) return messages;
+
+  return [...messages, message].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+}
+
 export default function ConversationPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -89,6 +108,9 @@ export default function ConversationPage() {
   const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+
     const run = async () => {
       setState({ status: "loading" });
       setSendError(null);
@@ -156,6 +178,8 @@ export default function ConversationPage() {
 
         const pseudo = formatPseudo(buddyRes.data?.pseudo);
 
+        if (disposed) return;
+
         setState({
           status: "ready",
           currentUserId: user.id,
@@ -165,13 +189,37 @@ export default function ConversationPage() {
             studyLevel: buddyRes.data?.study_level?.trim() || "Niveau non precise",
             initials: getInitials(pseudo),
           },
-          messages: (messagesRes.data ?? []).map((row) => ({
-            id: row.id,
-            senderId: row.sender_id,
-            content: row.body?.trim() || "",
-            createdAt: row.created_at,
-          })),
+          messages: (messagesRes.data ?? []).map((row) => toMessageViewModel(row)),
         });
+
+        const channel = supabase
+          .channel(`messages:${conversationId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "messages",
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            (payload) => {
+              const row = payload.new as MessageRow;
+
+              setState((prev) => {
+                if (prev.status !== "ready") return prev;
+
+                return {
+                  ...prev,
+                  messages: appendMessageUnique(prev.messages, toMessageViewModel(row)),
+                };
+              });
+            }
+          )
+          .subscribe();
+
+        return () => {
+          void supabase.removeChannel(channel);
+        };
       } catch (error) {
         setState({
           status: "error",
@@ -180,7 +228,18 @@ export default function ConversationPage() {
       }
     };
 
-    void run();
+    void run().then((nextCleanup) => {
+      if (disposed) {
+        nextCleanup?.();
+        return;
+      }
+      cleanup = nextCleanup;
+    });
+
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
   }, [conversationId, router]);
 
   const handleSend = useCallback(
@@ -197,15 +256,7 @@ export default function ConversationPage() {
           if (prev.status !== "ready") return prev;
           return {
             ...prev,
-            messages: [
-              ...prev.messages,
-              {
-                id: newMessage.id,
-                senderId: newMessage.sender_id,
-                content: newMessage.body?.trim() || content,
-                createdAt: newMessage.created_at,
-              },
-            ],
+            messages: appendMessageUnique(prev.messages, toMessageViewModel(newMessage, content)),
           };
         });
       } catch (error) {
