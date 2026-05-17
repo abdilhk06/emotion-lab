@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/app-layout/AppLayout";
 import { ResourceGrid } from "@/components/resources/ResourceGrid";
-import { UrgentHelpBanner } from "@/components/resources/UrgentHelpBanner";
 import { loadResources, type ResourceLoadResult } from "@/lib/resources";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
@@ -56,7 +55,6 @@ export default function ResourcesPage() {
         <h2>Ressources pour t&apos;accompagner</h2>
         <p>Articles, conseils pratiques et outils rapides pour ton bien-être et ta réussite étudiante.</p>
       </section>
-      <UrgentHelpBanner />
 
       {state.status === "loading" ? (
         <section className="resources-state" role="status" aria-live="polite">
