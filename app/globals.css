@@ -234,6 +234,9 @@ h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; line-height: 1.2; }
   box-shadow: 0 4px 20px rgba(139, 78, 110, 0.25);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   margin: 0 auto 10px;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
 }
 .team-avatar:hover {
   transform: scale(1.06);
@@ -244,6 +247,9 @@ h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; line-height: 1.2; }
   height: 100%;
   object-fit: cover;
   object-position: center top;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
 }
 .team-name { font-weight: 600; font-size: 0.95rem; color: #2d2d2d; }
 .team-role { font-size: 0.8rem; color: #8b4e6e; font-style: italic; margin-top: 2px; }

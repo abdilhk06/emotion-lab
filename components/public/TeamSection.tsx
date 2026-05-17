@@ -1,3 +1,5 @@
+'use client';
+
 import Image from "next/image";
 
 const team = [
@@ -33,20 +35,25 @@ export function TeamSection() {
     <section className="team-section">
       <div className="section-title">
         <span className="eyebrow">L&apos;équipe</span>
-        <h2>Cinq étudiant·es de l&apos;ISCAE</h2>
+        <h2>Cinq étudiants de l&apos;ISCAE</h2>
         <p style={{ color: "var(--texte-gris)", marginTop: "10px" }}>
-          Encadré·es par Mme Kbaili dans le cadre du PIS.
+          Encadré·es par Pr. Hind KABAILI et Pr. Imane BOUDRI dans le cadre du PIS.
         </p>
       </div>
       <div className="team-grid">
         {team.map((member) => (
           <div className="team-member" key={member.name}>
-            <div className="team-avatar">
+            <div
+              className="team-avatar"
+              onContextMenu={(event) => event.preventDefault()}
+            >
               <Image
                 src={member.image}
                 alt={member.name}
                 width={120}
                 height={120}
+                draggable={false}
+                onContextMenu={(event) => event.preventDefault()}
                 style={{ objectFit: "cover", objectPosition: "center top" }}
               />
             </div>
