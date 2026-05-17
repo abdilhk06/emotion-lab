@@ -133,7 +133,7 @@ export function AppLayout({
     <div className="app-shell">
       <aside className="app-sidebar">
         <Link className="sidebar-logo" href="/dashboard">
-          <BrandLogo showText />
+          <BrandLogo showText size="sidebar" />
         </Link>
         <nav className="sidebar-nav" aria-label="Navigation principale">
           <p className="sidebar-menu-label">Menu</p>

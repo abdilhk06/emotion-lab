@@ -4,7 +4,7 @@ export function AuthVisualPanel() {
   return (
     <aside className="auth-visual">
       <div className="logo">
-        <BrandLogo showText />
+        <BrandLogo variant="hero" className="auth-brand-logo" priority />
       </div>
       <div className="auth-hero">
         <h2>
