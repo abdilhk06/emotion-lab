@@ -10,6 +10,7 @@ import { BuddyHero } from "@/components/buddies/BuddyHero";
 import { PersonalitySummary } from "@/components/buddies/PersonalitySummary";
 import { SharedHobbies } from "@/components/buddies/SharedHobbies";
 import { computeBuddyCompatibilityScore } from "@/lib/compatibility";
+import { findConversationBetweenUsers, findOrCreateConversationBetweenUsers } from "@/lib/supabase/conversations";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
 type BuddyPageProps = {
@@ -56,6 +57,7 @@ type ReadyState = {
   sharedHobbies: string[];
   compatibility: number;
   existingRequestStatus: "pending" | "accepted" | null;
+  conversationId: string | null;
 };
 
 type PageState =
@@ -85,7 +87,7 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
           return;
         }
 
-        const [buddyProfileRes, myProfileRes, resultsRes, hobbiesRes, buddyRequestRes] = await Promise.all([
+        const [buddyProfileRes, myProfileRes, resultsRes, hobbiesRes, buddyRequestRes, conversationRes] = await Promise.all([
           supabase
             .from("profiles")
             .select("id, pseudo, bio, looking_for, study_level, is_visible")
@@ -110,6 +112,7 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
             .in("status", ["pending", "accepted"])
             .limit(1)
             .returns<BuddyRequestRow[]>(),
+          findConversationBetweenUsers(supabase, user.id, id),
         ]);
 
         const firstError =
@@ -169,6 +172,7 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
             sharedHobbies,
             compatibility,
             existingRequestStatus: (buddyRequestRes.data?.[0]?.status as "pending" | "accepted" | undefined) ?? null,
+            conversationId: conversationRes?.id ?? null,
           },
         });
       } catch (error) {
@@ -227,16 +231,38 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
       return { ok: false, message: insertRes.error.message };
     }
 
+    const conversationId = await findOrCreateConversationBetweenUsers(supabase, state.data.meId, state.data.buddyId);
+    if (message.length > 0) {
+      const firstMessage = await supabase
+        .from("messages")
+        .insert({ conversation_id: conversationId, sender_id: state.data.meId, body: message })
+        .select("id")
+        .single<{ id: string }>();
+
+      if (firstMessage.error) {
+        return { ok: false, message: firstMessage.error.message };
+      }
+    }
+
     setState((prev) =>
       prev.status === "ready"
         ? {
             status: "ready",
-            data: { ...prev.data, existingRequestStatus: "pending" },
+            data: { ...prev.data, existingRequestStatus: "pending", conversationId },
           }
         : prev
     );
+    router.push(`/messages/${conversationId}`);
     return { ok: true };
-  }, [state]);
+  }, [router, state]);
+
+  const onOpenConversation = useCallback(async () => {
+    if (state.status !== "ready" || state.data.isSelf) return;
+    const supabase = getSupabaseClient();
+    const conversationId =
+      state.data.conversationId ?? (await findOrCreateConversationBetweenUsers(supabase, state.data.meId, state.data.buddyId));
+    router.push(`/messages/${conversationId}`);
+  }, [router, state]);
 
   const content = useMemo(() => {
     if (state.status === "loading") {
@@ -280,7 +306,13 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
         <BioCard title="Ce qu'elle cherche" content={data.lookingFor} fallback="Objectif de binome non precise pour le moment." />
         <PersonalitySummary mbtiCode={data.mbtiCode} mbtiName={data.mbtiName} studyLevel={data.studyLevel} />
         <SharedHobbies buddyHobbies={data.buddyHobbies} sharedHobbies={data.sharedHobbies} />
-        <BuddyCTA isSelf={data.isSelf} existingStatus={data.existingRequestStatus} onSendRequest={onSendRequest} />
+        <BuddyCTA
+          isSelf={data.isSelf}
+          existingStatus={data.existingRequestStatus}
+          conversationId={data.conversationId}
+          onSendRequest={onSendRequest}
+          onOpenConversation={onOpenConversation}
+        />
         <div className="buddy-report">
           <button type="button" className="buddy-report-link">
             Signaler ce profil
@@ -288,7 +320,7 @@ export default function BuddyDetailPage({ params }: BuddyPageProps) {
         </div>
       </div>
     );
-  }, [onSendRequest, state]);
+  }, [onOpenConversation, onSendRequest, state]);
 
   return (
     <AppLayout title="Fiche Buddy">

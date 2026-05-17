@@ -54,8 +54,8 @@ function getInitials(pseudo: string): string {
 }
 
 function resolveParticipants(conversation: ConversationRow) {
-  const first = conversation.sender_id ?? conversation.user_1_id ?? null;
-  const second = conversation.receiver_id ?? conversation.user_2_id ?? null;
+  const first = conversation.user_1_id ?? conversation.sender_id ?? null;
+  const second = conversation.user_2_id ?? conversation.receiver_id ?? null;
   return { first, second };
 }
 

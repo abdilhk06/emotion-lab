@@ -55,7 +55,7 @@ function normalizeRequest(row: BuddyRequestRow, mode: ViewTab): BuddyRequestItem
 }
 
 function conversationPairFilter(userA: string, userB: string): string {
-  return `and(sender_id.eq.${userA},receiver_id.eq.${userB}),and(sender_id.eq.${userB},receiver_id.eq.${userA})`;
+  return `and(user_1_id.eq.${userA},user_2_id.eq.${userB}),and(user_1_id.eq.${userB},user_2_id.eq.${userA})`;
 }
 
 export function RequestTabs() {
