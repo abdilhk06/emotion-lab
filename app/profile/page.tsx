@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/app-layout/AppLayout";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { STUDY_LEVEL_CHOICES, isStudyLevel } from "@/lib/study-levels";
 
 type ProfileRow = {
   id: string;
@@ -42,7 +43,6 @@ type ProfileState =
 const BIO_MAX = 200;
 const LOOKING_FOR_MAX = 100;
 const HOBBIES_MAX = 15;
-const STUDY_LEVEL_CHOICES = ["L1", "L2", "L3", "PM", "M1", "M2", "LAUREAT"] as const;
 
 const EMPTY_FORM: FormValues = {
   pseudo: "",
@@ -166,9 +166,7 @@ export default function ProfilePage() {
 
         const nextForm: FormValues = {
           pseudo: profileRes.data.pseudo?.trim() ?? "",
-          studyLevel: STUDY_LEVEL_CHOICES.includes(profileRes.data.study_level?.trim() as (typeof STUDY_LEVEL_CHOICES)[number])
-            ? profileRes.data.study_level?.trim() ?? ""
-            : "",
+          studyLevel: isStudyLevel(profileRes.data.study_level?.trim() ?? "") ? profileRes.data.study_level?.trim() ?? "" : "",
           bio: profileRes.data.bio?.trim() ?? "",
           lookingFor: profileRes.data.looking_for?.trim() ?? "",
           isVisible: profileRes.data.is_visible ?? true,
@@ -200,6 +198,7 @@ export default function ProfilePage() {
     if (!values.pseudo.trim()) return "Le pseudo est obligatoire.";
     if (values.pseudo.trim().length < 3) return "Le pseudo doit contenir au moins 3 caracteres.";
     if (!values.studyLevel.trim()) return "Le niveau d'etudes est obligatoire.";
+    if (!isStudyLevel(values.studyLevel)) return "Le niveau d'etudes est invalide.";
     if (values.bio.length > BIO_MAX) return "La bio depasse la limite autorisee.";
     if (values.lookingFor.length > LOOKING_FOR_MAX) return "Le champ 'ce que tu cherches' depasse la limite.";
     if (values.hobbies.length > HOBBIES_MAX) return "Tu peux enregistrer jusqu'a 15 loisirs maximum.";

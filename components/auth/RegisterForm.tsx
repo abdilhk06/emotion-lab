@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { STUDY_LEVEL_CHOICES, isStudyLevel } from "@/lib/study-levels";
 import { clearLegacyTestFlowStorage, clearUserTestFlowStorage } from "@/lib/test-flow-storage";
 
 export function RegisterForm() {
@@ -21,8 +22,11 @@ export function RegisterForm() {
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    if (!email || !pseudo || !studyLevel || !password || !confirmPassword) return setError("Merci de remplir tous les champs obligatoires.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Merci d'entrer une adresse email valide.");
+    const nextEmail = email.trim().toLowerCase();
+    const nextPseudo = pseudo.trim();
+    if (!nextEmail || !nextPseudo || !studyLevel || !password || !confirmPassword) return setError("Merci de remplir tous les champs obligatoires.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) return setError("Merci d'entrer une adresse email valide.");
+    if (!isStudyLevel(studyLevel)) return setError("Merci de choisir un niveau d'etude valide.");
     if (password.length < 8) return setError("Le mot de passe doit contenir au moins 8 caracteres.");
     if (password !== confirmPassword) return setError("Les mots de passe ne correspondent pas.");
     setSubmitting(true);
@@ -30,26 +34,52 @@ export function RegisterForm() {
       clearLegacyTestFlowStorage();
       const supabase = getSupabaseClient();
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: nextEmail,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/login`,
           data: {
-            pseudo,
+            pseudo: nextPseudo,
             study_level: studyLevel,
           },
         },
       });
       if (error) {
-        setError(error.message);
+        setError(`Creation du compte impossible : ${error.message}`);
         return;
       }
-      if (data.user) {
-        clearUserTestFlowStorage(data.user.id);
+      if (!data.user) {
+        setError("Creation du compte impossible : Supabase n'a pas retourne d'utilisateur.");
+        return;
       }
+      if (data.user.identities?.length === 0) {
+        setError("Un compte existe deja avec cet email. Connecte-toi depuis la page de connexion.");
+        return;
+      }
+
+      clearUserTestFlowStorage(data.user.id);
+
+      if (data.session) {
+        const { error: profileError } = await supabase.from("profiles").upsert(
+          {
+            id: data.user.id,
+            email: nextEmail,
+            pseudo: nextPseudo,
+            study_level: studyLevel,
+          },
+          { onConflict: "id" }
+        );
+
+        if (profileError) {
+          setError(`Profil non cree : ${profileError.message}`);
+          return;
+        }
+      }
+
       void consent;
       router.push("/verify-email");
-    } catch {
-      setError("Une erreur inattendue est survenue. Merci de reessayer.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur inattendue est survenue. Merci de reessayer.");
     } finally {
       setSubmitting(false);
     }
@@ -61,7 +91,17 @@ export function RegisterForm() {
       <form className="auth-form" onSubmit={onSubmit}>
         <div className="input-group"><label htmlFor="register-email">Email</label><input id="register-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
         <div className="input-group"><label htmlFor="register-pseudo">Pseudo</label><input id="register-pseudo" type="text" required value={pseudo} onChange={(e) => setPseudo(e.target.value)} /></div>
-        <div className="input-group"><label htmlFor="register-study-level">Niveau d&apos;etude</label><input id="register-study-level" type="text" required value={studyLevel} onChange={(e) => setStudyLevel(e.target.value)} /></div>
+        <div className="input-group">
+          <label htmlFor="register-study-level">Niveau d&apos;etude</label>
+          <select id="register-study-level" required value={studyLevel} onChange={(e) => setStudyLevel(e.target.value)}>
+            <option value="">Choisir un niveau</option>
+            {STUDY_LEVEL_CHOICES.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="input-group">
           <label htmlFor="register-password">Mot de passe</label>
           <div style={{ position: "relative" }}>
