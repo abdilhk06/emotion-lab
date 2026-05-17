@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { computeBuddyCompatibilityScore } from "@/lib/compatibility";
 import { BigFiveRadar } from "@/components/results/BigFiveRadar";
 import { BuddySuggestionCard, type BuddySuggestion } from "@/components/results/BuddySuggestionCard";
 import { GaugeCard } from "@/components/results/GaugeCard";
@@ -26,9 +27,29 @@ type ResultState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "empty" }
-  | { status: "ready"; result: StoredResult };
+  | { status: "ready"; result: StoredResult; buddies: BuddySuggestion[] };
 
 type TestResultRow = StoredResult & { created_at: string };
+
+type ProfileRow = {
+  id: string;
+  pseudo: string | null;
+  study_level: string | null;
+  bio: string | null;
+  looking_for: string | null;
+  is_visible: boolean | null;
+};
+
+type HobbyRow = {
+  user_id: string;
+  hobby: string;
+};
+
+type BuddyResultRow = {
+  user_id: string;
+  mbti_code: string | null;
+  created_at: string;
+};
 
 const MBTI_EXPLANATIONS: Record<string, string> = {
   ENFJ: "Tu inspires les autres par ta chaleur, ton sens du collectif et ta capacite a mobiliser.",
@@ -108,42 +129,98 @@ function statusForBalance(value: number) {
   return { label: "Organise", tone: "balanced" as const };
 }
 
-function buildBuddySuggestions(result: StoredResult): BuddySuggestion[] {
-  const seed = result.mbti_code;
-  const isSocial = result.big_five_scores.extraversion >= 50;
-  return [
-    {
-      id: `${seed}-1`,
-      handle: "@salma_pm",
-      initials: "S",
-      mbti: isSocial ? "INTP" : "ENFJ",
-      level: "L2",
-      tagline: "Cherche quelqu'un pour se motiver en periode d'examens.",
-      interests: ["Running", "Lecture", "Cuisine"],
-      compatibility: clamp(82 + Math.round(result.big_five_scores.agreeableness / 10)),
-    },
-    {
-      id: `${seed}-2`,
-      handle: "@yassine.m",
-      initials: "Y",
-      mbti: "ESTJ",
-      level: "PM",
-      tagline: "Organise et motive, j'aime travailler en binome.",
-      interests: ["Tennis", "Ecriture"],
-      compatibility: clamp(68 + Math.round(result.balance_score / 9)),
-    },
-    {
-      id: `${seed}-3`,
-      handle: "@lina_art",
-      initials: "L",
-      mbti: "ENFP",
-      level: "L3",
-      tagline: "Creative, j'aime echanger sur des idees et des projets concrets.",
-      interests: ["Dessin", "Lecture"],
-      compatibility: clamp(65 + Math.round(result.big_five_scores.openness / 8)),
-    },
-  ];
+function initialsFromPseudo(pseudo: string | null | undefined): string {
+  const clean = pseudo?.trim().replace(/^@+/, "") ?? "B";
+  return clean.slice(0, 1).toUpperCase() || "B";
 }
+
+function buddyTagline(profile: ProfileRow): string {
+  const lookingFor = profile.looking_for?.trim();
+  if (lookingFor) return lookingFor;
+  const bio = profile.bio?.trim();
+  if (bio) return bio.slice(0, 90);
+  return "Disponible pour apprendre ensemble et garder un bon rythme.";
+}
+
+function toBuddySuggestion(params: {
+  meMbti: string;
+  meStudyLevel: string | null;
+  myHobbies: Set<string>;
+  profile: ProfileRow;
+  buddyMbti: string | null;
+  buddyHobbies: string[];
+}): BuddySuggestion {
+  const shared = params.buddyHobbies.filter((hobby) => params.myHobbies.has(hobby)).slice(0, 3);
+  const compatibility = computeBuddyCompatibilityScore({
+    sharedHobbiesCount: shared.length,
+    currentMbti: params.meMbti,
+    buddyMbti: params.buddyMbti,
+    sameStudyLevel: Boolean(params.meStudyLevel && params.profile.study_level && params.meStudyLevel === params.profile.study_level),
+  });
+
+  return {
+    id: params.profile.id,
+    handle: `@${params.profile.pseudo?.trim().replace(/^@+/, "") || "buddy"}`,
+    initials: initialsFromPseudo(params.profile.pseudo),
+    mbti: params.buddyMbti ?? "MBTI",
+    level: params.profile.study_level?.trim() || "Niveau non renseigne",
+    tagline: buddyTagline(params.profile),
+    interests: shared,
+    compatibility: clamp(compatibility),
+  };
+}
+
+async function loadBuddySuggestions(userId: string, result: StoredResult): Promise<BuddySuggestion[]> {
+  const supabase = getSupabaseClient();
+  const [profilesRes, hobbiesRes, resultsRes, myProfileRes] = await Promise.all([
+    supabase.from("profiles").select("id,pseudo,study_level,bio,looking_for,is_visible").neq("id", userId).eq("is_visible", true).limit(30).returns<ProfileRow[]>(),
+    supabase.from("user_hobbies").select("user_id,hobby").in("user_id", [userId]),
+    supabase.from("test_results").select("user_id,mbti_code,created_at").neq("user_id", userId).order("created_at", { ascending: false }).limit(300).returns<BuddyResultRow[]>(),
+    supabase.from("profiles").select("study_level").eq("id", userId).maybeSingle<{ study_level: string | null }>(),
+  ]);
+
+  const firstError = profilesRes.error ?? hobbiesRes.error ?? resultsRes.error ?? myProfileRes.error;
+  if (firstError) throw new Error(firstError.message);
+
+  const visibleProfiles = profilesRes.data ?? [];
+  if (visibleProfiles.length === 0) return [];
+
+  const candidateIds = visibleProfiles.map((row) => row.id);
+  const [candidateHobbiesRes] = await Promise.all([
+    supabase.from("user_hobbies").select("user_id,hobby").in("user_id", candidateIds).returns<HobbyRow[]>(),
+  ]);
+  if (candidateHobbiesRes.error) throw new Error(candidateHobbiesRes.error.message);
+
+  const myHobbies = new Set((hobbiesRes.data ?? []).map((row) => row.hobby));
+  const hobbiesByUser = new Map<string, string[]>();
+  for (const row of candidateHobbiesRes.data ?? []) {
+    const list = hobbiesByUser.get(row.user_id) ?? [];
+    list.push(row.hobby);
+    hobbiesByUser.set(row.user_id, list);
+  }
+
+  const latestMbtiByUser = new Map<string, string | null>();
+  for (const row of resultsRes.data ?? []) {
+    if (!latestMbtiByUser.has(row.user_id)) latestMbtiByUser.set(row.user_id, row.mbti_code);
+  }
+
+  const meStudyLevel = myProfileRes.data?.study_level ?? null;
+
+  return visibleProfiles
+    .map((profile) =>
+      toBuddySuggestion({
+        meMbti: result.mbti_code,
+        meStudyLevel,
+        myHobbies,
+        profile,
+        buddyMbti: latestMbtiByUser.get(profile.id) ?? null,
+        buddyHobbies: hobbiesByUser.get(profile.id) ?? [],
+      })
+    )
+    .sort((a, b) => b.compatibility - a.compatibility || a.handle.localeCompare(b.handle, "fr"))
+    .slice(0, 3);
+}
+
 
 export default function TestResultsPage() {
   const [state, setState] = useState<ResultState>({ status: "loading" });
@@ -181,31 +258,35 @@ export default function TestResultsPage() {
           .maybeSingle<TestResultRow>();
 
         if (error) {
-          if (fallback) setState({ status: "ready", result: fallback });
+          if (fallback) setState({ status: "ready", result: fallback, buddies: [] });
           else setState({ status: "error", message: error.message });
           return;
         }
 
         if (!data) {
-          if (fallback) setState({ status: "ready", result: fallback });
+          if (fallback) setState({ status: "ready", result: fallback, buddies: [] });
           else setState({ status: "empty" });
           return;
         }
 
-        setState({
-          status: "ready",
-          result: {
+        const safeResult: StoredResult = {
             mbti_code: data.mbti_code,
             mbti_name: data.mbti_name,
             big_five_scores: data.big_five_scores,
             stress_score: clamp(data.stress_score),
             balance_score: clamp(data.balance_score),
             calculated_at: data.created_at,
-          },
-        });
+          };
+
+        try {
+          const buddies = await loadBuddySuggestions(user.id, safeResult);
+          setState({ status: "ready", result: safeResult, buddies });
+        } catch {
+          setState({ status: "ready", result: safeResult, buddies: [] });
+        }
       } catch (error) {
         if (fallback) {
-          setState({ status: "ready", result: fallback });
+          setState({ status: "ready", result: fallback, buddies: [] });
         } else {
           setState({
             status: "error",
@@ -277,7 +358,7 @@ export default function TestResultsPage() {
   const stress = statusForStress(result.stress_score);
   const balance = statusForBalance(result.balance_score);
   const explanation = MBTI_EXPLANATIONS[result.mbti_code] ?? "Ton profil montre un bon potentiel de progression emotionnelle et relationnelle.";
-  const buddies = buildBuddySuggestions(result);
+  const buddies = state.buddies;
 
   return (
     <main className="test-page results-page-wrap">
@@ -314,9 +395,9 @@ export default function TestResultsPage() {
             <section className="results-section">
               <div className="results-section-title">Tes 3 buddies suggeres</div>
               <div className="buddies-grid">
-                {buddies.map((buddy) => (
+                {buddies.length > 0 ? buddies.map((buddy) => (
                   <BuddySuggestionCard buddy={buddy} key={buddy.id} />
-                ))}
+                )) : <p className="results-empty-inline">Aucun buddy suggere pour le moment.</p>}
               </div>
             </section>
 
@@ -683,6 +764,11 @@ export default function TestResultsPage() {
           width: 100%;
           min-height: 42px;
           padding: 10px 14px;
+        }
+        .results-empty-inline {
+          margin: 0;
+          color: var(--texte-gris);
+          font-size: 14px;
         }
         .results-footer {
           display: flex;
