@@ -10,14 +10,23 @@ export function UrgentHelpBanner() {
       </p>
       <div className="urgent-numbers">
         <a className="urgent-num" href="tel:0801000180">
+          <span className="num-icon" aria-hidden="true">
+            📞
+          </span>
           <strong>0801 000 180</strong>
           <span>SOS Detresse Jeunes</span>
         </a>
         <a className="urgent-num" href="tel:141">
+          <span className="num-icon" aria-hidden="true">
+            🚑
+          </span>
           <strong>141</strong>
           <span>SAMU (urgences medicales)</span>
         </a>
         <a className="urgent-num" href="tel:+212537704444">
+          <span className="num-icon" aria-hidden="true">
+            💬
+          </span>
           <strong>0537 70 44 44</strong>
           <span>Ecoute Maroc</span>
         </a>
@@ -68,6 +77,11 @@ export function UrgentHelpBanner() {
           color: var(--plum);
           font-size: 15px;
           line-height: 1.2;
+        }
+
+        .num-icon {
+          font-size: 18px;
+          line-height: 1;
         }
 
         .urgent-num span {
