@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { ProfileLink } from "@/components/ui/ProfileLink";
 
 type ConversationTopBarProps = {
+  profileId: string;
   pseudo: string;
   studyLevel: string;
   initials: string;
 };
 
-export function ConversationTopBar({ pseudo, studyLevel, initials }: ConversationTopBarProps) {
+export function ConversationTopBar({ profileId, pseudo, studyLevel, initials }: ConversationTopBarProps) {
   return (
     <header className="conversation-top-bar">
       <Link className="back-btn" href="/messages" aria-label="Retour a la messagerie">
@@ -20,7 +22,9 @@ export function ConversationTopBar({ pseudo, studyLevel, initials }: Conversatio
       </div>
 
       <div className="buddy-meta">
-        <h2>{pseudo}</h2>
+        <h2>
+          <ProfileLink profileId={profileId} username={pseudo} />
+        </h2>
         <p><span aria-hidden="true">●</span> En ligne · {studyLevel}</p>
       </div>
 

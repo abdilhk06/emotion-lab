@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { RequestActions } from "@/components/buddies/RequestActions";
+import { ProfileLink } from "@/components/ui/ProfileLink";
 
 export type RequestStatus = "pending" | "accepted" | "rejected";
 
@@ -48,8 +48,6 @@ function formatDateLabel(dateValue: string): string {
 export function RequestCard({ item, mode, busyAction, disabled, successMessage, onAccept, onReject }: RequestCardProps) {
   const initials = getInitials(item.profile.pseudo);
   const canAct = mode === "received" && item.status === "pending";
-  const profileHref = item.profileId ? `/buddies/${item.profileId}` : null;
-  const profileLabel = `Voir le profil de ${item.profile.pseudo}`;
   const identityContent = (
     <>
       <div className="req-avatar" aria-hidden="true">{initials}</div>
@@ -64,13 +62,9 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
   return (
     <article className="request-card">
       <div className="req-header">
-        {profileHref ? (
-          <Link className="req-identity-link" href={profileHref} aria-label={profileLabel} title={profileLabel}>
-            {identityContent}
-          </Link>
-        ) : (
-          <div className="req-identity-static">{identityContent}</div>
-        )}
+        <ProfileLink profileId={item.profileId} username={item.profile.pseudo} className="req-identity-link">
+          {identityContent}
+        </ProfileLink>
         <span className="req-time">{formatDateLabel(item.createdAt)}</span>
       </div>
 
@@ -99,8 +93,7 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
           align-items: center;
           gap: 14px;
         }
-        .req-identity-link,
-        .req-identity-static {
+        :global(.req-identity-link) {
           min-width: 0;
           display: inline-flex;
           align-items: center;
@@ -109,22 +102,22 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
           text-decoration: none;
           max-width: min(100%, 520px);
         }
-        .req-identity-link {
+        :global(.req-identity-link) {
           border-radius: 999px;
           padding: 5px 10px 5px 5px;
           margin: -5px -10px -5px -5px;
           transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
         }
-        .req-identity-link:hover,
-        .req-identity-link:focus-visible {
+        :global(.req-identity-link:hover),
+        :global(.req-identity-link:focus-visible) {
           background: #faf2f7;
           box-shadow: 0 8px 24px rgba(138, 59, 101, 0.12);
         }
-        .req-identity-link:hover h3,
-        .req-identity-link:focus-visible h3 {
+        :global(.req-identity-link:hover) h3,
+        :global(.req-identity-link:focus-visible) h3 {
           color: #8a3b65;
         }
-        .req-identity-link:focus-visible {
+        :global(.req-identity-link:focus-visible) {
           outline: 3px solid rgba(138, 59, 101, 0.28);
           outline-offset: 3px;
         }
@@ -169,8 +162,8 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
           transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease;
           white-space: nowrap;
         }
-        .req-identity-link:hover .req-profile-pill,
-        .req-identity-link:focus-visible .req-profile-pill {
+        :global(.req-identity-link:hover) .req-profile-pill,
+        :global(.req-identity-link:focus-visible) .req-profile-pill {
           background: #f5dde9;
           opacity: 1;
           transform: translateX(0);
@@ -196,8 +189,7 @@ export function RequestCard({ item, mode, busyAction, disabled, successMessage, 
           .req-profile-pill {
             display: none;
           }
-          .req-identity-link,
-          .req-identity-static {
+          :global(.req-identity-link) {
             max-width: calc(100% - 70px);
           }
         }

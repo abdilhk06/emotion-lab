@@ -38,7 +38,7 @@ type ConversationState =
   | {
       status: "ready";
       currentUserId: string;
-      buddy: { pseudo: string; studyLevel: string; initials: string };
+      buddy: { id: string; pseudo: string; studyLevel: string; initials: string };
       messages: { id: string; senderId: string; content: string; createdAt: string }[];
     };
 
@@ -160,6 +160,7 @@ export default function ConversationPage() {
           status: "ready",
           currentUserId: user.id,
           buddy: {
+            id: buddyId,
             pseudo,
             studyLevel: buddyRes.data?.study_level?.trim() || "Niveau non precise",
             initials: getInitials(pseudo),
@@ -256,6 +257,7 @@ export default function ConversationPage() {
     return (
       <div className="conversation-wrap">
         <ConversationTopBar
+          profileId={state.buddy.id}
           pseudo={state.buddy.pseudo}
           studyLevel={state.buddy.studyLevel}
           initials={state.buddy.initials}

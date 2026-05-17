@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { ProfileLink } from "@/components/ui/ProfileLink";
 
 type ConversationItemProps = {
   conversationId: string;
+  profileId: string;
   pseudo: string;
   preview: string;
   timeLabel: string;
@@ -13,6 +15,7 @@ type ConversationItemProps = {
 
 export function ConversationItem({
   conversationId,
+  profileId,
   pseudo,
   preview,
   timeLabel,
@@ -22,16 +25,20 @@ export function ConversationItem({
   const hasUnread = unreadCount > 0;
 
   return (
-    <Link href={`/messages/${conversationId}`} className="conv-row">
-      <div className="conv-avatar" aria-hidden="true">{initials}</div>
+    <article className="conv-row">
+      <Link href={`/messages/${conversationId}`} className="conv-avatar-link" aria-label={`Ouvrir la conversation avec ${pseudo}`}>
+        <div className="conv-avatar" aria-hidden="true">{initials}</div>
+      </Link>
       <div className="conv-body">
-        <span className="conv-handle">{pseudo}</span>
-        <p className="conv-preview">{preview}</p>
+        <ProfileLink profileId={profileId} username={pseudo} />
+        <Link href={`/messages/${conversationId}`} className="conv-preview-link" aria-label={`Ouvrir la conversation avec ${pseudo}`}>
+          <p className="conv-preview">{preview}</p>
+        </Link>
       </div>
-      <div className="conv-right">
+      <Link href={`/messages/${conversationId}`} className="conv-right" aria-label={`Ouvrir la conversation avec ${pseudo}`}>
         <span className="conv-time">{timeLabel}</span>
         {hasUnread ? <span className="unread-badge">{unreadCount}</span> : null}
-      </div>
-    </Link>
+      </Link>
+    </article>
   );
 }

@@ -30,6 +30,7 @@ type ProfileRow = {
 
 type ConversationViewModel = {
   id: string;
+  profileId: string;
   pseudo: string;
   initials: string;
   preview: string;
@@ -186,6 +187,7 @@ export function ConversationList() {
 
             return {
               id: conversation.id,
+              profileId: otherUserId,
               pseudo,
               initials: toInitials(pseudo),
               preview: latestMessage?.body?.trim() || "Aucun message pour le moment.",
@@ -251,6 +253,7 @@ export function ConversationList() {
           <ConversationItem
             key={item.id}
             conversationId={item.id}
+            profileId={item.profileId}
             pseudo={item.pseudo}
             preview={item.preview}
             timeLabel={formatTimeLabel(item.lastMessageAt)}
@@ -366,6 +369,19 @@ export function ConversationList() {
         :global(.conv-row:hover) {
           background: #f5f0f7;
         }
+        :global(.conv-avatar-link),
+        :global(.conv-preview-link),
+        :global(.conv-right) {
+          color: inherit;
+          text-decoration: none;
+          border-radius: 12px;
+        }
+        :global(.conv-avatar-link:focus-visible),
+        :global(.conv-preview-link:focus-visible),
+        :global(.conv-right:focus-visible) {
+          outline: 3px solid rgba(123, 45, 139, 0.28);
+          outline-offset: 3px;
+        }
         :global(.conv-avatar) {
           width: 52px;
           height: 52px;
@@ -382,11 +398,6 @@ export function ConversationList() {
         :global(.conv-body) {
           flex: 1;
           min-width: 0;
-        }
-        :global(.conv-handle) {
-          color: #7e3d5e;
-          font-weight: 800;
-          font-size: 15px;
         }
         :global(.conv-preview) {
           margin: 5px 0 0;
