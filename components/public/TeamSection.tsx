@@ -12,6 +12,11 @@ const team = [
     image: "/Imane derraj.jpeg",
   },
   {
+    name: "Abdelhakim MORTAKI",
+    role: "Suivi technique",
+    image: "/Abdelhakim MORTAKI.jpeg",
+  },
+  {
     name: "Nada EL MESSARI",
     role: "Communication digitale",
     image: "/Nada el messari.jpeg",
@@ -20,11 +25,6 @@ const team = [
     name: "Hiba ZAH",
     role: "Expérience utilisateur",
     image: "/Hiba zah.jpeg",
-  },
-  {
-    name: "Abdelhakim MORTAKI",
-    role: "Suivi technique",
-    image: "/Abdelhakim MORTAKI.jpeg",
   },
 ];
 
