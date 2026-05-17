@@ -1,13 +1,17 @@
 "use client";
 
+import { PDFDownloadLink } from "@react-pdf/renderer";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AppLayout } from "@/components/app-layout/AppLayout";
 import { computeBuddyCompatibilityScore } from "@/lib/compatibility";
 import { BigFiveRadar } from "@/components/results/BigFiveRadar";
 import { BuddySuggestionCard, type BuddySuggestion } from "@/components/results/BuddySuggestionCard";
 import { GaugeCard } from "@/components/results/GaugeCard";
 import { MBTIAxes, type MBTIAxisItem } from "@/components/results/MBTIAxes";
 import { ResultsHero } from "@/components/results/ResultsHero";
+import { ResultPdfDocument, type ResultPdfData } from "@/components/results/ResultPdfDocument";
 import type { BigFiveScores } from "@/lib/calculate-result";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { clearLegacyTestFlowStorage, getUserTestFlowStorageKey } from "@/lib/test-flow-storage";
@@ -27,7 +31,13 @@ type ResultState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "empty" }
-  | { status: "ready"; result: StoredResult; buddies: BuddySuggestion[] };
+  | {
+      status: "ready";
+      result: StoredResult;
+      buddies: BuddySuggestion[];
+      profile: { pseudo: string | null; study_level: string | null; bio: string | null; looking_for: string | null };
+      hobbies: string[];
+    };
 
 type TestResultRow = StoredResult & { created_at: string };
 
@@ -142,6 +152,36 @@ function buddyTagline(profile: ProfileRow): string {
   return "Disponible pour apprendre ensemble et garder un bon rythme.";
 }
 
+function sanitizePdfFilenamePart(value: string | null | undefined): string {
+  const clean = value?.trim().replace(/^@+/, "") || "profil";
+  return clean.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "profil";
+}
+
+function buildPdfData(
+  result: StoredResult,
+  profile: { pseudo: string | null; study_level: string | null; bio: string | null; looking_for: string | null },
+  hobbies: string[]
+): ResultPdfData {
+  return {
+    generatedAt: new Date().toISOString(),
+    profile: {
+      pseudo: profile.pseudo,
+      studyLevel: profile.study_level,
+      bio: profile.bio,
+      lookingFor: profile.looking_for,
+    },
+    hobbies,
+    result: {
+      mbtiCode: result.mbti_code,
+      mbtiName: result.mbti_name,
+      bigFiveScores: result.big_five_scores,
+      stressScore: result.stress_score,
+      balanceScore: result.balance_score,
+      createdAt: result.calculated_at ?? new Date().toISOString(),
+    },
+  };
+}
+
 function toBuddySuggestion(params: {
   meMbti: string;
   meStudyLevel: string | null;
@@ -223,6 +263,7 @@ async function loadBuddySuggestions(userId: string, result: StoredResult): Promi
 
 
 export default function TestResultsPage() {
+  const router = useRouter();
   const [state, setState] = useState<ResultState>({ status: "loading" });
 
   useEffect(() => {
@@ -244,7 +285,7 @@ export default function TestResultsPage() {
         }
 
         if (!user) {
-          setState({ status: "empty" });
+          router.replace("/login");
           return;
         }
 
@@ -258,13 +299,13 @@ export default function TestResultsPage() {
           .maybeSingle<TestResultRow>();
 
         if (error) {
-          if (fallback) setState({ status: "ready", result: fallback, buddies: [] });
+          if (fallback) setState({ status: "ready", result: fallback, buddies: [], profile: { pseudo: null, study_level: null, bio: null, looking_for: null }, hobbies: [] });
           else setState({ status: "error", message: error.message });
           return;
         }
 
         if (!data) {
-          if (fallback) setState({ status: "ready", result: fallback, buddies: [] });
+          if (fallback) setState({ status: "ready", result: fallback, buddies: [], profile: { pseudo: null, study_level: null, bio: null, looking_for: null }, hobbies: [] });
           else setState({ status: "empty" });
           return;
         }
@@ -279,14 +320,24 @@ export default function TestResultsPage() {
           };
 
         try {
-          const buddies = await loadBuddySuggestions(user.id, safeResult);
-          setState({ status: "ready", result: safeResult, buddies });
+          const [buddies, profileRes, hobbiesRes] = await Promise.all([
+            loadBuddySuggestions(user.id, safeResult),
+            supabase.from("profiles").select("pseudo,study_level,bio,looking_for").eq("id", user.id).maybeSingle<{ pseudo: string | null; study_level: string | null; bio: string | null; looking_for: string | null }>(),
+            supabase.from("user_hobbies").select("hobby").eq("user_id", user.id),
+          ]);
+          setState({
+            status: "ready",
+            result: safeResult,
+            buddies,
+            profile: profileRes.data ?? { pseudo: null, study_level: null, bio: null, looking_for: null },
+            hobbies: (hobbiesRes.data ?? []).map((row) => row.hobby).filter(Boolean).sort((a, b) => a.localeCompare(b, "fr")),
+          });
         } catch {
-          setState({ status: "ready", result: safeResult, buddies: [] });
+          setState({ status: "ready", result: safeResult, buddies: [], profile: { pseudo: null, study_level: null, bio: null, looking_for: null }, hobbies: [] });
         }
       } catch (error) {
         if (fallback) {
-          setState({ status: "ready", result: fallback, buddies: [] });
+          setState({ status: "ready", result: fallback, buddies: [], profile: { pseudo: null, study_level: null, bio: null, looking_for: null }, hobbies: [] });
         } else {
           setState({
             status: "error",
@@ -297,7 +348,7 @@ export default function TestResultsPage() {
     };
 
     void run();
-  }, []);
+  }, [router]);
 
   const secondaryCtas = useMemo(
     () =>
@@ -310,7 +361,8 @@ export default function TestResultsPage() {
 
   if (state.status === "loading") {
     return (
-      <main className="test-page results-page-wrap">
+      <AppLayout title="Mes resultats">
+      <main className="results-page-wrap">
         <div className="test-shell">
           <section className="results-state-card">
             <h1>Chargement de tes resultats...</h1>
@@ -318,12 +370,14 @@ export default function TestResultsPage() {
           </section>
         </div>
       </main>
+      </AppLayout>
     );
   }
 
   if (state.status === "error") {
     return (
-      <main className="test-page results-page-wrap">
+      <AppLayout title="Mes resultats">
+      <main className="results-page-wrap">
         <div className="test-shell">
           <section className="results-state-card">
             <h1>Impossible d&apos;afficher tes resultats</h1>
@@ -334,12 +388,14 @@ export default function TestResultsPage() {
           </section>
         </div>
       </main>
+      </AppLayout>
     );
   }
 
   if (state.status === "empty") {
     return (
-      <main className="test-page results-page-wrap">
+      <AppLayout title="Mes resultats">
+      <main className="results-page-wrap">
         <div className="test-shell">
           <section className="results-state-card">
             <h1>Aucun resultat disponible</h1>
@@ -350,6 +406,7 @@ export default function TestResultsPage() {
           </section>
         </div>
       </main>
+      </AppLayout>
     );
   }
 
@@ -359,12 +416,15 @@ export default function TestResultsPage() {
   const balance = statusForBalance(result.balance_score);
   const explanation = MBTI_EXPLANATIONS[result.mbti_code] ?? "Ton profil montre un bon potentiel de progression emotionnelle et relationnelle.";
   const buddies = state.buddies;
+  const pdfData = buildPdfData(result, state.profile, state.hobbies);
+  const pdfFileName = `emotion-lab-resultats-${sanitizePdfFilenamePart(state.profile.pseudo)}.pdf`;
 
   return (
-    <main className="test-page results-page-wrap">
+    <AppLayout title="Mes resultats">
+    <main className="results-page-wrap">
       <div className="test-shell results-shell">
         <div className="results-page">
-          <ResultsHero mbtiCode={result.mbti_code} mbtiName={result.mbti_name} explanation={explanation} />
+          <ResultsHero mbtiCode={result.mbti_code} mbtiName={result.mbti_name} explanation={explanation} ctaLabel="PDF" />
 
           <div className="results-body">
             <MBTIAxes axes={axes} />
@@ -402,6 +462,9 @@ export default function TestResultsPage() {
             </section>
 
             <div className="results-footer">
+              <PDFDownloadLink className="btn btn-tertiary" document={<ResultPdfDocument data={pdfData} />} fileName={pdfFileName}>
+                {({ loading }) => (loading ? "Preparation du PDF..." : "Telecharger en PDF")}
+              </PDFDownloadLink>
               <Link className="btn btn-primary" href="/dashboard">
                 Continuer vers mon dashboard
               </Link>
@@ -415,7 +478,7 @@ export default function TestResultsPage() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx global>{`
         .results-page-wrap {
           background:
             radial-gradient(760px 360px at 0% -12%, rgba(247, 186, 193, 0.32), transparent 62%),
@@ -790,6 +853,7 @@ export default function TestResultsPage() {
         }
       `}</style>
     </main>
+    </AppLayout>
   );
 }
 
