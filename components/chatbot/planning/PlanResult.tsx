@@ -262,13 +262,13 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
           display: grid;
           gap: 18px;
           width: 100%;
-          max-width: 960px;
+          max-width: 1240px;
           margin: 0 auto;
         }
 
         .result-intro {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+          grid-template-columns: 1fr;
           gap: 18px;
           align-items: stretch;
           padding: clamp(16px, 3vw, 24px);
@@ -325,7 +325,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
 
         .synthesis-grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 10px;
         }
 
@@ -388,9 +388,9 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
 
         .desktop-table {
           width: 100%;
-          min-width: 880px;
+          min-width: 1080px;
           border-collapse: collapse;
-          table-layout: fixed;
+          table-layout: auto;
           font-size: 12px;
         }
 
@@ -399,7 +399,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         }
 
         .col-task {
-          width: 20%;
+          width: 18%;
         }
 
         .col-type {
@@ -419,7 +419,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         }
 
         .col-advice {
-          width: 27%;
+          width: 31%;
         }
 
         th,
@@ -637,6 +637,10 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
           .result-intro,
           .support-grid {
             grid-template-columns: 1fr;
+          }
+
+          .synthesis-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
           .desktop-table-wrap {

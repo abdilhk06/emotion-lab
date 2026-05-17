@@ -350,8 +350,12 @@ export function PlanningFlow() {
               <input type="datetime-local" value={currentTask.deadline} onChange={(event) => updateTask(currentTaskIndex, { deadline: event.target.value })} />
             </label>
             <label className="field importance-field" htmlFor={fieldId(currentTaskIndex, "importance")}>
-              <span>Importance: {currentTask.importance}/10</span>
+              <span className="range-label">
+                <span>Importance</span>
+                <strong>{currentTask.importance}/10</strong>
+              </span>
               <input
+                className="planning-range"
                 id={fieldId(currentTaskIndex, "importance")}
                 type="range"
                 min={1}
@@ -470,12 +474,10 @@ export function PlanningFlow() {
           display: grid;
           gap: 14px;
           width: 100%;
-          justify-items: center;
+          min-height: calc(100vh - 125px);
+          justify-items: stretch;
           overflow: hidden;
-          border: 1px solid rgba(126, 61, 94, 0.14);
-          border-radius: 22px;
           background: #fdfbfc;
-          box-shadow: 0 24px 60px rgba(35, 28, 51, 0.12);
         }
 
         .welcome-panel,
@@ -550,7 +552,8 @@ export function PlanningFlow() {
         .safety-banner,
         .form-error {
           margin: 0 clamp(16px, 3vw, 24px);
-          width: min(calc(100% - 32px), 720px);
+          justify-self: center;
+          width: min(calc(100% - 32px), 1120px);
           padding: 12px 14px;
           border-radius: 14px;
           font-size: 14px;
@@ -574,7 +577,7 @@ export function PlanningFlow() {
           grid-template-columns: minmax(0, 1fr) auto;
           align-items: end;
           gap: 28px;
-          width: min(calc(100% - 32px), 720px);
+          width: min(calc(100% - 32px), 1120px);
           min-height: 220px;
           margin: 0 clamp(16px, 3vw, 24px);
           padding: clamp(20px, 4vw, 34px);
@@ -600,17 +603,18 @@ export function PlanningFlow() {
         .result-panel {
           display: grid;
           gap: 20px;
-          width: min(calc(100% - 32px), 680px);
+          justify-self: center;
+          width: min(calc(100% - 32px), 720px);
           margin: 0 clamp(16px, 3vw, 24px);
           padding: clamp(16px, 3vw, 24px);
         }
 
         .recap-panel {
-          width: min(calc(100% - 32px), 720px);
+          width: min(calc(100% - 32px), 1120px);
         }
 
         .result-panel {
-          width: min(calc(100% - 32px), 960px);
+          width: min(calc(100% - 32px), 1280px);
         }
 
         .step-heading {
@@ -728,33 +732,58 @@ export function PlanningFlow() {
           cursor: not-allowed;
         }
 
-        input[type="range"] {
-          height: 12px;
+        .range-label {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .range-label strong {
+          color: var(--plum);
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .planning-range {
+          width: 100%;
+          height: 8px;
+          margin: 4px 0 2px;
           padding: 0;
-          accent-color: var(--plum);
           border: 0;
           border-radius: 999px;
-          background: linear-gradient(90deg, #8ec0c9 0%, #f7bac1 50%, #7e3d5e 100%);
+          background: linear-gradient(90deg, #8ec0c9 0%, #f7bac1 55%, #7e3d5e 100%);
+          outline: none;
           appearance: none;
+          -webkit-appearance: none;
         }
 
-        input[type="range"]::-webkit-slider-thumb {
-          width: 22px;
-          height: 22px;
-          border: 3px solid #fff;
-          border-radius: 50%;
-          background: var(--plum);
-          box-shadow: 0 4px 12px rgba(126, 61, 94, 0.26);
-          appearance: none;
-        }
-
-        input[type="range"]::-moz-range-thumb {
+        .planning-range::-webkit-slider-thumb {
           width: 18px;
           height: 18px;
-          border: 3px solid #fff;
-          border-radius: 50%;
-          background: var(--plum);
-          box-shadow: 0 4px 12px rgba(126, 61, 94, 0.26);
+          border: 3px solid #7e3d5e;
+          border-radius: 999px;
+          background: #fff;
+          box-shadow: 0 2px 8px rgba(26, 26, 46, 0.16);
+          cursor: pointer;
+          appearance: none;
+          -webkit-appearance: none;
+        }
+
+        .planning-range::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border: 3px solid #7e3d5e;
+          border-radius: 999px;
+          background: #fff;
+          box-shadow: 0 2px 8px rgba(26, 26, 46, 0.16);
+          cursor: pointer;
+        }
+
+        .planning-range::-moz-range-track {
+          height: 8px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #8ec0c9 0%, #f7bac1 55%, #7e3d5e 100%);
         }
 
         .importance-field {
