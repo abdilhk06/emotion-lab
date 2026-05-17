@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/dashboard/LogoutButton";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 
 type NavItem = {
   href: string;
@@ -132,7 +133,7 @@ export function AppLayout({
     <div className="app-shell">
       <aside className="app-sidebar">
         <Link className="sidebar-logo" href="/dashboard">
-          Emotion Lab
+          <BrandLogo showText />
         </Link>
         <nav className="sidebar-nav" aria-label="Navigation principale">
           <p className="sidebar-menu-label">Menu</p>

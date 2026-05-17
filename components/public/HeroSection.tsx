@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 
 export function HeroSection() {
   return (
@@ -13,7 +14,7 @@ export function HeroSection() {
             <span className="subtext">Déjà un compte ? <Link href="/login" style={{ color: "var(--bleu-ciel)", textDecoration: "none", fontWeight: 500 }}>Me connecter</Link></span>
           </div>
         </div>
-        <div className="hero-illustration"><div className="hero-blob" /><span aria-label="Emotion Lab" className="brand-logo brand-logo-hero" role="img" /></div>
+        <div className="hero-illustration"><div className="hero-blob" /><BrandLogo variant="hero" className="hero-brand-logo" priority /></div>
       </div>
     </section>
   );

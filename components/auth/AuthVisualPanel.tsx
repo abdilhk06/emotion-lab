@@ -1,9 +1,10 @@
-﻿export function AuthVisualPanel() {
+import { BrandLogo } from "@/components/shared/BrandLogo";
+
+export function AuthVisualPanel() {
   return (
     <aside className="auth-visual">
       <div className="logo">
-        <span aria-label="Emotion Lab" className="brand-logo brand-logo-sm logo-img" role="img" />
-        <span>Emotion Lab</span>
+        <BrandLogo showText />
       </div>
       <div className="auth-hero">
         <h2>

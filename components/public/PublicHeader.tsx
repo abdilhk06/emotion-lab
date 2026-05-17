@@ -1,11 +1,11 @@
-﻿import Link from "next/link";
+import Link from "next/link";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 
 export function PublicHeader() {
   return (
     <header className="header-public">
       <Link className="logo" href="/">
-        <span aria-label="Emotion Lab" className="brand-logo brand-logo-sm logo-img" role="img" />
-        <span>Emotion Lab</span>
+        <BrandLogo showText />
       </Link>
       <nav className="nav-links only-desktop">
         <a href="#">A propos</a>
