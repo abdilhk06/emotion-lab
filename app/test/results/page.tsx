@@ -7,8 +7,7 @@ import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/app-layout/AppLayout";
 import { computeBuddyCompatibilityScore } from "@/lib/compatibility";
 import { BigFiveRadar } from "@/components/results/BigFiveRadar";
-import { BuddySuggestionCard, type BuddySuggestion } from "@/components/results/BuddySuggestionCard";
-import { GaugeCard } from "@/components/results/GaugeCard";
+import type { BuddySuggestion } from "@/components/results/BuddySuggestionCard";
 import { MBTIAxes, type MBTIAxisItem } from "@/components/results/MBTIAxes";
 import { ResultsHero } from "@/components/results/ResultsHero";
 import { ResultPdfDocument, type ResultPdfData } from "@/components/results/ResultPdfDocument";
@@ -414,6 +413,8 @@ export default function TestResultsPage() {
   const axes = mbtiAxesFromScores(result.mbti_code, result.big_five_scores);
   const stress = statusForStress(result.stress_score);
   const balance = statusForBalance(result.balance_score);
+  const stressStatusLabel = stress.tone === "low" ? "Faible" : stress.tone === "moderate" ? "Modere - eleve" : "Eleve";
+  const balanceStatusLabel = balance.tone === "moderate" ? "Spontane" : balance.label;
   const explanation = MBTI_EXPLANATIONS[result.mbti_code] ?? "Ton profil montre un bon potentiel de progression emotionnelle et relationnelle.";
   const buddies = state.buddies;
   const pdfData = buildPdfData(result, state.profile, state.hobbies);
@@ -430,38 +431,54 @@ export default function TestResultsPage() {
             <MBTIAxes axes={axes} />
             <BigFiveRadar scores={result.big_five_scores} />
 
-            <section className="results-section">
-              <div className="results-section-title">Comment tu fonctionnes</div>
-              <div className="gauges-grid">
-                <GaugeCard
-                  label="Niveau de stress"
-                  value={result.stress_score}
-                  status={stress.label}
-                  tone={stress.tone}
-                  scale={["Faible", "Modere", "Eleve"]}
-                  description="Tu traverses peut-etre une phase intense. Le chatbot et un buddy empathique peuvent t'aider."
-                />
-                <GaugeCard
-                  label="Style d'organisation"
-                  value={result.balance_score}
-                  status={balance.label}
-                  tone={balance.tone}
-                  scale={["Spontane", "Equilibre", "Organise"]}
-                  description="Ton score reflete ton equilibre entre souplesse et structure dans ton quotidien."
-                />
+            <section className="results-section function-section">
+              <h2 className="section-kicker">COMMENT TU FONCTIONNES</h2>
+              <div className="function-grid">
+                <article className="function-card">
+                  <h3>Niveau de stress</h3>
+                  <div className="score orange"><span>{result.stress_score}</span><small>/100</small></div>
+                  <p className="status orange">● {stressStatusLabel}</p>
+                  <div className="bar"><span className="bar-fill stress" style={{ width: `${result.stress_score}%` }} /></div>
+                  <div className="scale"><span>Faible</span><span>Modere</span><span>Eleve</span></div>
+                  <p className="description">Tu traverses peut-etre une phase intense. Le chatbot et un buddy empathique peuvent t&apos;aider.</p>
+                </article>
+                <article className="function-card">
+                  <h3>Style d&apos;organisation</h3>
+                  <div className="score green"><span>{result.balance_score}</span><small>/100</small></div>
+                  <p className="status green">● {balanceStatusLabel}</p>
+                  <div className="bar"><span className="bar-fill organization" style={{ width: `${result.balance_score}%` }} /></div>
+                  <div className="scale"><span>Spontane</span><span>Equilibre</span><span>Organise</span></div>
+                  <p className="description">Tu as un bon equilibre entre rigueur et souplesse. La matrice d&apos;Eisenhower pourrait encore t&apos;aider.</p>
+                </article>
               </div>
             </section>
 
-            <section className="results-section">
-              <div className="results-section-title">Tes 3 buddies suggeres</div>
+            <section className="results-section buddies-section">
+              <h2 className="section-kicker">TES 3 BUDDIES SUGGERES</h2>
               <div className="buddies-grid">
                 {buddies.length > 0 ? buddies.map((buddy) => (
-                  <BuddySuggestionCard buddy={buddy} key={buddy.id} />
+                  <article className="buddy-card" key={buddy.id}>
+                    <span className="compat">{buddy.compatibility}%</span>
+                    <div className="buddy-head">
+                      <div className="avatar">{buddy.initials}</div>
+                      <div>
+                        <h3>{buddy.handle}</h3>
+                        <p>{buddy.mbti} · {buddy.level}</p>
+                      </div>
+                    </div>
+                    <p className="quote">« {buddy.tagline} »</p>
+                    <div className="chips">
+                      {buddy.interests.length > 0 ? buddy.interests.map((interest) => (
+                        <span key={`${buddy.id}-${interest}`}>{interest}</span>
+                      )) : <span>Aucun hobby commun</span>}
+                    </div>
+                    <button type="button">Envoyer une demande</button>
+                  </article>
                 )) : <p className="results-empty-inline">Aucun buddy suggere pour le moment.</p>}
               </div>
             </section>
 
-            <div className="results-footer">
+            <div className="results-footer section-actions">
               <PDFDownloadLink className="btn btn-tertiary" document={<ResultPdfDocument data={pdfData} />} fileName={pdfFileName}>
                 {({ loading }) => (loading ? "Preparation du PDF..." : "Telecharger en PDF")}
               </PDFDownloadLink>
@@ -677,179 +694,51 @@ export default function TestResultsPage() {
           font-size: 13px;
           color: var(--texte-gris);
         }
-        .gauges-grid {
-          display: grid;
-          gap: 12px;
-        }
-        .gauge-card {
-          border: 1px solid var(--bordure);
-          border-radius: 16px;
-          background: #fff;
-          padding: 14px;
-        }
-        .gauge-label {
-          color: var(--texte-clair);
-          font-size: 13px;
-        }
-        .gauge-value {
-          margin-top: 4px;
-          font-family: "Poppins", sans-serif;
-          font-size: 32px;
-          font-weight: 800;
-          color: var(--plum);
-        }
-        .gauge-value span {
-          font-size: 17px;
-          color: var(--texte-clair);
-        }
-        .gauge-status {
-          font-size: 13px;
-          font-weight: 700;
-        }
-        .gauge-status.faible,
-        .gauge-value-faible {
-          color: #0e9f6e;
-        }
-        .gauge-status.modere,
-        .gauge-value-modere {
-          color: #d97706;
-        }
-        .gauge-status.eleve,
-        .gauge-value-eleve {
-          color: #dc2626;
-        }
-        .gauge-status.equilibre,
-        .gauge-value-equilibre {
-          color: #0284c7;
-        }
-        .gauge-track {
-          margin-top: 8px;
-          height: 10px;
-          border-radius: 999px;
-          background: #ece7f1;
-          overflow: hidden;
-        }
-        .gauge-fill {
-          height: 100%;
-        }
-        .gauge-fill.faible {
-          background: #0e9f6e;
-        }
-        .gauge-fill.modere {
-          background: #d97706;
-        }
-        .gauge-fill.eleve {
-          background: #dc2626;
-        }
-        .gauge-fill.equilibre {
-          background: #0284c7;
-        }
-        .gauge-scale {
-          margin-top: 8px;
-          display: flex;
-          justify-content: space-between;
-          font-size: 12px;
-          color: var(--texte-clair);
-        }
-        .gauge-card p {
-          margin: 10px 0 0;
-          color: var(--texte-gris);
-          font-size: 13px;
-        }
-        .buddies-grid {
-          display: grid;
-          gap: 12px;
-        }
-        .buddy-card {
-          position: relative;
-          border: 1px solid var(--bordure);
-          border-radius: 16px;
-          background: #fff;
-          padding: 14px;
-        }
-        .buddy-compat {
-          position: absolute;
-          right: 12px;
-          top: 10px;
-          padding: 4px 8px;
-          border-radius: 999px;
-          font-size: 12px;
-          background: #eef7fb;
-          color: #13658a;
-          font-weight: 700;
-        }
-        .buddy-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .buddy-avatar {
-          width: 42px;
-          height: 42px;
-          border-radius: 12px;
-          background: var(--gradient-signature);
-          color: #fff;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-family: "Poppins", sans-serif;
-        }
-        .buddy-info h4 {
-          margin: 0;
-          font-size: 15px;
-        }
-        .buddy-meta {
-          font-size: 12px;
-          color: var(--texte-clair);
-        }
-        .buddy-tagline {
-          margin: 10px 0;
-          color: var(--texte-gris);
-          font-size: 13px;
-        }
-        .buddy-common {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 7px;
-        }
-        .chip {
-          border-radius: 999px;
-          border: 1px solid var(--bordure);
-          background: #f8f6fb;
-          font-size: 12px;
-          padding: 5px 9px;
-        }
-        .buddy-action {
-          margin-top: 12px;
-        }
-        .buddy-action .btn {
-          width: 100%;
-          min-height: 42px;
-          padding: 10px 14px;
-        }
+        .section-kicker { margin: 0 0 20px; color: #7e3d5e; font-size: 14px; line-height: 1; font-weight: 800; letter-spacing: 3px; }
+        .function-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 44px; }
+        .function-card, .buddy-card { background: #fff; border: 1px solid #e5e0ec; border-radius: 14px; box-shadow: 0 8px 20px rgba(18, 20, 40, 0.06); }
+        .function-card { padding: 26px 25px; min-height: 240px; }
+        .function-card h3 { margin: 0 0 8px; font-size: 15px; font-weight: 500; color: #26395d; }
+        .score { display: flex; align-items: flex-end; gap: 5px; margin-bottom: 4px; }
+        .score span { font-size: 38px; line-height: 1; font-weight: 800; letter-spacing: -1px; }
+        .score small { font-size: 18px; line-height: 1.2; font-weight: 800; color: #647596; }
+        .orange span, .status.orange { color: #f28a33; }
+        .green span, .status.green { color: #43c181; }
+        .status { font-size: 13px; font-weight: 700; margin: 0 0 14px; }
+        .bar { height: 10px; width: 100%; border-radius: 999px; background: #e8e1ed; overflow: hidden; margin-bottom: 8px; }
+        .bar-fill { display: block; height: 100%; border-radius: 999px; }
+        .bar-fill.stress { background: linear-gradient(90deg, #6ed198 0%, #f28a33 100%); }
+        .bar-fill.organization { background: linear-gradient(90deg, #8ec0c9 0%, #43c181 100%); }
+        .scale { display: flex; justify-content: space-between; color: #5f7191; font-size: 10px; margin-bottom: 16px; }
+        .description { margin: 0; color: #24395c; font-size: 14px; line-height: 1.45; }
+        .buddies-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .buddy-card { position: relative; padding: 20px; min-height: 255px; }
+        .compat { position: absolute; top: 16px; right: 18px; background: #effff5; color: #43c181; font-size: 13px; font-weight: 800; padding: 5px 11px; border-radius: 999px; }
+        .buddy-head { display: flex; align-items: center; gap: 13px; margin-bottom: 24px; padding-right: 52px; }
+        .avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #8b4d73, #4f94bd); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; }
+        .buddy-head h3 { margin: 0 0 2px; font-size: 20px; font-weight: 800; color: #071238; }
+        .buddy-head p { margin: 0; font-size: 13px; color: #607399; }
+        .quote { min-height: 54px; margin: 0 0 16px; color: #26395d; font-size: 14px; font-style: italic; line-height: 1.55; }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+        .chips span { display: inline-flex; align-items: center; padding: 6px 11px; border-radius: 999px; background: #f3eef6; color: #43516b; font-size: 12px; line-height: 1; }
+        .buddy-card button { width: 100%; height: 42px; border: 0; border-radius: 10px; background: #7e3d5e; color: #fff; font-weight: 800; cursor: pointer; }
         .results-empty-inline {
           margin: 0;
           color: var(--texte-gris);
           font-size: 14px;
         }
-        .results-footer {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          justify-content: flex-end;
-        }
+        .results-footer { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+        .section-actions { display: flex; justify-content: center; gap: 16px; margin-top: 76px; }
         @media (min-width: 900px) {
           .big-five-grid {
             grid-template-columns: 1fr 1.1fr;
             align-items: stretch;
           }
-          .gauges-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .buddies-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
+        }
+        @media (max-width: 850px) {
+          .function-grid, .buddies-grid { grid-template-columns: 1fr; }
+          .section-actions { margin-top: 34px; flex-direction: column; }
+          .section-actions .btn { width: 100%; }
         }
       `}</style>
     </main>
