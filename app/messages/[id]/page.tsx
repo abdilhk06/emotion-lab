@@ -103,6 +103,7 @@ export default function ConversationPage() {
   const [state, setState] = useState<ConversationState>({ status: "loading" });
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [readSyncError, setReadSyncError] = useState<string | null>(null);
   const [unreadTotal, setUnreadTotal] = useState(0);
 
   useEffect(() => {
@@ -112,6 +113,7 @@ export default function ConversationPage() {
     const run = async () => {
       setState({ status: "loading" });
       setSendError(null);
+      setReadSyncError(null);
 
       try {
         const supabase = getSupabaseClient();
@@ -220,8 +222,17 @@ export default function ConversationPage() {
               if (row.sender_id !== user.id) {
                 void markConversationMessagesAsRead(supabase, conversationId, user.id)
                   .then(() => fetchUnreadMessageCount(supabase, user.id))
-                  .then((count) => setUnreadTotal(count))
-                  .catch(() => undefined);
+                  .then((count) => {
+                    setUnreadTotal(count);
+                    setReadSyncError(null);
+                  })
+                  .catch((error) => {
+                    setReadSyncError(
+                      error instanceof Error
+                        ? `Lecture non synchronisee: ${error.message}`
+                        : "Lecture non synchronisee."
+                    );
+                  });
               }
             }
           )
@@ -329,6 +340,11 @@ export default function ConversationPage() {
             {sendError}
           </p>
         ) : null}
+        {readSyncError ? (
+          <p className="send-error" role="alert">
+            {readSyncError}
+          </p>
+        ) : null}
         {isSending ? (
           <p className="send-state" role="status" aria-live="polite">
             Envoi en cours...
@@ -338,7 +354,7 @@ export default function ConversationPage() {
         <ModerationNote />
       </div>
     );
-  }, [handleSend, isSending, sendError, state]);
+  }, [handleSend, isSending, readSyncError, sendError, state]);
 
   return (
     <AppLayout title="Conversation" badges={{ messages: unreadTotal }}>

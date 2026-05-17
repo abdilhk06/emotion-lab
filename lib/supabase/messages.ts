@@ -77,10 +77,11 @@ export async function markConversationMessagesAsRead(
   supabase: SupabaseClient,
   conversationId: string,
   userId: string
-): Promise<void> {
+): Promise<number> {
   const res = await supabase
     .from("messages")
     .update({ read_at: new Date().toISOString() })
+    .select("id")
     .eq("conversation_id", conversationId)
     .neq("sender_id", userId)
     .is("read_at", null);
@@ -88,4 +89,6 @@ export async function markConversationMessagesAsRead(
   if (res.error) {
     throw new Error(res.error.message);
   }
+
+  return (res.data ?? []).length;
 }
