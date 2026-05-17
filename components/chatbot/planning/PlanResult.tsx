@@ -20,7 +20,7 @@ type PlanResultProps = {
   actions?: PlanResultActions;
 };
 
-const ACTION_ORDER: PlanAction[] = ["regenerate", "edit_task", "add_task", "export_pdf"];
+const ACTION_ORDER: PlanAction[] = ["export_pdf", "edit_task", "add_task", "regenerate"];
 
 const ACTION_LABEL: Record<PlanAction, string> = {
   regenerate: "Regenerer",
@@ -135,7 +135,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
               </header>
               <div className="slot-stack">
                 {group.slots.map((slot, index) => (
-                  <article key={`${slot.date}-${slot.heure_debut}-${slot.tache}-${index}`} className="slot-card">
+                  <article key={`${slot.date}-${slot.heure_debut}-${slot.tache}-${index}`} className={`slot-card ${importanceTone(slot.importance)}`}>
                     <div className="slot-topline">
                       <span className="slot-time">
                         {slot.heure_debut} - {slot.heure_fin}
@@ -158,6 +158,15 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
 
         <div className="desktop-table-wrap">
           <table className="desktop-table">
+            <colgroup>
+              <col className="col-time" />
+              <col className="col-task" />
+              <col className="col-type" />
+              <col className="col-method" />
+              <col className="col-importance" />
+              <col className="col-duration" />
+              <col className="col-advice" />
+            </colgroup>
             <thead>
               <tr>
                 <th>Horaire</th>
@@ -178,7 +187,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
                     </th>
                   </tr>
                   {group.slots.map((slot, index) => (
-                    <tr key={`${slot.date}-${slot.heure_debut}-${slot.tache}-${index}`}>
+                    <tr className={`plan-row ${importanceTone(slot.importance)}`} key={`${slot.date}-${slot.heure_debut}-${slot.tache}-${index}`}>
                       <td className="time-cell">
                         {slot.heure_debut}
                         <span>{slot.heure_fin}</span>
@@ -247,9 +256,14 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
       <style jsx>{`
         .plan-result {
           --shadow-soft: 0 12px 28px rgba(35, 28, 51, 0.08);
+          --importance-low: #bfe3f4;
+          --importance-medium: #d8c2ea;
+          --importance-high: #7e3d5e;
           display: grid;
           gap: 18px;
           width: 100%;
+          max-width: 960px;
+          margin: 0 auto;
         }
 
         .result-intro {
@@ -259,10 +273,12 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
           align-items: stretch;
           padding: clamp(16px, 3vw, 24px);
           border: 1px solid rgba(255, 255, 255, 0.5);
-          border-radius: 18px;
+          border-radius: 20px;
           color: #fff;
-          background: var(--gradient-signature);
-          box-shadow: var(--shadow-soft);
+          background:
+            radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.22), transparent 28%),
+            linear-gradient(135deg, #7e3d5e 0%, #92617d 34%, #6c7d99 66%, #2e8bbf 100%);
+          box-shadow: 0 18px 38px rgba(35, 28, 51, 0.16);
         }
 
         .intro-copy {
@@ -270,6 +286,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
           align-content: center;
           gap: 8px;
           min-width: 0;
+          padding-right: 8px;
         }
 
         .eyebrow,
@@ -316,8 +333,8 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
           min-width: 0;
           padding: 12px;
           border: 1px solid rgba(255, 255, 255, 0.24);
-          border-radius: 12px;
-          background: rgba(255, 255, 255, 0.13);
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.16);
           backdrop-filter: blur(8px);
         }
 
@@ -340,7 +357,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
           display: grid;
           gap: 12px;
           border: 1px solid var(--bordure);
-          border-radius: 16px;
+          border-radius: 18px;
           background: #fff;
           box-shadow: var(--shadow-soft);
         }
@@ -365,25 +382,56 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
 
         .desktop-table-wrap {
           overflow-x: auto;
+          border: 1px solid #eee7f2;
+          border-radius: 14px;
         }
 
         .desktop-table {
           width: 100%;
-          min-width: 860px;
+          min-width: 880px;
           border-collapse: collapse;
           table-layout: fixed;
-          font-size: 13px;
+          font-size: 12px;
+        }
+
+        .col-time {
+          width: 10%;
+        }
+
+        .col-task {
+          width: 20%;
+        }
+
+        .col-type {
+          width: 10%;
+        }
+
+        .col-method {
+          width: 14%;
+        }
+
+        .col-importance {
+          width: 11%;
+        }
+
+        .col-duration {
+          width: 8%;
+        }
+
+        .col-advice {
+          width: 27%;
         }
 
         th,
         td {
-          padding: 12px 10px;
+          padding: 10px 9px;
           border-bottom: 1px solid #eee7f2;
           text-align: left;
-          vertical-align: top;
+          vertical-align: middle;
         }
 
         thead th {
+          background: #fbf8fc;
           color: #627086;
           font-size: 11px;
           font-weight: 800;
@@ -391,9 +439,8 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         }
 
         .date-separator th {
-          padding: 11px 10px;
+          padding: 9px 10px;
           border-bottom: 0;
-          border-radius: 10px;
           background: #f6f0f6;
           color: var(--plum);
           font-size: 13px;
@@ -402,6 +449,27 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         .date-separator span {
           color: #6f7890;
           font-weight: 700;
+        }
+
+        .plan-row {
+          border-left: 5px solid var(--importance-medium);
+          background: #fff;
+        }
+
+        .plan-row.low {
+          border-left-color: var(--importance-low);
+        }
+
+        .plan-row.medium {
+          border-left-color: var(--importance-medium);
+        }
+
+        .plan-row.high {
+          border-left-color: var(--importance-high);
+        }
+
+        .plan-row:hover {
+          background: #fdfbfc;
         }
 
         .time-cell {
@@ -423,7 +491,7 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
 
         .advice-cell {
           color: #40516c;
-          line-height: 1.42;
+          line-height: 1.35;
           overflow-wrap: anywhere;
         }
 
@@ -443,11 +511,11 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         .soft-tag,
         .tag-row span {
           max-width: 100%;
-          padding: 6px 9px;
+          padding: 5px 8px;
           border: 1px solid #eadfeb;
           background: #f7f2f8;
           color: var(--plum);
-          font-size: 12px;
+          font-size: 11px;
           overflow: hidden;
           text-overflow: ellipsis;
         }
@@ -459,21 +527,25 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
         }
 
         .importance-badge {
-          padding: 6px 9px;
-          font-size: 12px;
+          padding: 5px 8px;
+          border: 1px solid transparent;
+          font-size: 11px;
         }
 
         .importance-badge.high {
-          background: #fff0f2;
-          color: #a32f4e;
+          border-color: #d8b4c5;
+          background: #f8eef3;
+          color: #7e3d5e;
         }
 
         .importance-badge.medium {
-          background: #fff7e8;
-          color: #986315;
+          border-color: #d8c2ea;
+          background: #f6f0fb;
+          color: #745197;
         }
 
         .importance-badge.low {
+          border-color: #bfe3f4;
           background: #eef8fc;
           color: #22769f;
         }
@@ -537,11 +609,23 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
             background 120ms ease;
         }
 
+        :global(.plan-pdf-action) {
+          border-color: transparent;
+          background: linear-gradient(135deg, var(--plum), var(--bleu-ciel));
+          color: #fff;
+          box-shadow: 0 10px 22px rgba(46, 139, 191, 0.2);
+        }
+
         :global(.plan-pdf-action:hover),
         .action-button:hover:not(:disabled) {
           transform: translateY(-1px);
           border-color: var(--bleu-ciel);
           background: #f4fbff;
+        }
+
+        :global(.plan-pdf-action:hover) {
+          background: linear-gradient(135deg, #713454, #247eae);
+          color: #fff;
         }
 
         .action-button:disabled {
@@ -600,10 +684,23 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
             gap: 9px;
             padding: 14px;
             border: 1px solid #eadfeb;
+            border-left: 5px solid var(--importance-medium);
             border-radius: 14px;
             background:
               linear-gradient(135deg, rgba(247, 186, 193, 0.16), transparent 42%),
               #fff;
+          }
+
+          .slot-card.low {
+            border-left-color: var(--importance-low);
+          }
+
+          .slot-card.medium {
+            border-left-color: var(--importance-medium);
+          }
+
+          .slot-card.high {
+            border-left-color: var(--importance-high);
           }
 
           .slot-topline {
@@ -614,6 +711,13 @@ export function PlanResult({ plan, actions }: PlanResultProps) {
           }
 
           .slot-time {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 28px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: #f6f0f6;
             color: var(--plum);
             font-size: 13px;
             font-weight: 900;

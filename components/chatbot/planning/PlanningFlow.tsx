@@ -17,6 +17,7 @@ type TaskDraft = {
 
 const TASK_TYPES = ["Revision", "Rendu", "Lecture", "Exercice", "Projet", "Administratif"];
 const SAFETY_MESSAGE = "Cet assistant cree un plan de travail personnalise. En cas d'urgence, contacte un service d'aide ou une personne de confiance.";
+const STEP_BAR_COUNT = 3;
 
 function localDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -39,6 +40,13 @@ function fieldId(index: number, field: string): string {
   return `task-${index}-${field}`;
 }
 
+function stepPosition(step: Step): number {
+  if (step === "setup") return 1;
+  if (step === "tasks") return 2;
+  if (step === "recap" || step === "loading" || step === "result") return 3;
+  return 0;
+}
+
 export function PlanningFlow() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("welcome");
@@ -56,10 +64,19 @@ export function PlanningFlow() {
   const currentTaskValid = currentTask.title.trim().length > 0 && currentTask.type.trim().length > 0 && currentTask.deadline.trim().length > 0;
   const allTasksValid = tasks.every((task) => task.title.trim() && task.type.trim() && task.deadline.trim() && task.importance >= 1 && task.importance <= 10);
   const progress = useMemo(() => Math.round(((currentTaskIndex + 1) / taskCount) * 100), [currentTaskIndex, taskCount]);
+  const activeStepPosition = stepPosition(step);
 
   const updateTask = (index: number, patch: Partial<TaskDraft>) => {
     setTasks((previous) => previous.map((task, taskIndex) => (taskIndex === index ? { ...task, ...patch } : task)));
   };
+
+  const stepBars = activeStepPosition ? (
+    <div className="step-bars" aria-label={`Etape ${activeStepPosition} sur ${STEP_BAR_COUNT}`}>
+      {Array.from({ length: STEP_BAR_COUNT }, (_, index) => (
+        <span key={index} className={index < activeStepPosition ? "is-active" : undefined} />
+      ))}
+    </div>
+  ) : null;
 
   useEffect(() => {
     const guard = async () => {
@@ -245,22 +262,33 @@ export function PlanningFlow() {
       {authChecked && step === "setup" ? (
         <section className="form-panel" aria-labelledby="setup-title">
           <div className="step-heading">
-            <p className="eyebrow">Etape 1</p>
-            <h2 id="setup-title">Cadre global</h2>
+            <div>
+              <p className="eyebrow">Etape 1</p>
+              <h2 id="setup-title">Cadre global</h2>
+            </div>
+            {stepBars}
           </div>
           <div className="field-grid">
-            <label className="field">
+            <label className="field task-count-field">
               <span>Nombre de taches</span>
-              <input
-                type="number"
-                min={1}
-                max={15}
-                value={taskCount}
-                onChange={(event) => {
-                  const value = Number(event.target.value);
-                  setTaskCount(Number.isFinite(value) ? Math.min(15, Math.max(1, value)) : 1);
-                }}
-              />
+              <div className="counter-control">
+                <button type="button" aria-label="Retirer une tache" onClick={() => setTaskCount((value) => Math.max(1, value - 1))} disabled={taskCount <= 1}>
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  max={15}
+                  value={taskCount}
+                  onChange={(event) => {
+                    const value = Number(event.target.value);
+                    setTaskCount(Number.isFinite(value) ? Math.min(15, Math.max(1, value)) : 1);
+                  }}
+                />
+                <button type="button" aria-label="Ajouter une tache" onClick={() => setTaskCount((value) => Math.min(15, value + 1))} disabled={taskCount >= 15}>
+                  +
+                </button>
+              </div>
             </label>
             <label className="field">
               <span>Deadline globale</span>
@@ -287,8 +315,11 @@ export function PlanningFlow() {
                 Tache {currentTaskIndex + 1} sur {taskCount}
               </h2>
             </div>
-            <div className="progress" aria-label={`Progression ${progress}%`}>
-              <span style={{ width: `${progress}%` }} />
+            <div className="progress-stack">
+              {stepBars}
+              <div className="progress" aria-label={`Progression ${progress}%`}>
+                <span style={{ width: `${progress}%` }} />
+              </div>
             </div>
           </div>
 
@@ -297,16 +328,23 @@ export function PlanningFlow() {
               <span>Titre</span>
               <input value={currentTask.title} onChange={(event) => updateTask(currentTaskIndex, { title: event.target.value })} placeholder="Ex: rendre le dossier de psycho" />
             </label>
-            <label className="field">
+            <div className="field">
               <span>Type</span>
-              <select value={currentTask.type} onChange={(event) => updateTask(currentTaskIndex, { type: event.target.value })}>
+              <div className="type-chip-list" role="radiogroup" aria-label="Type de tache">
                 {TASK_TYPES.map((type) => (
-                  <option key={type} value={type}>
+                  <button
+                    key={type}
+                    type="button"
+                    className={currentTask.type === type ? "type-chip is-selected" : "type-chip"}
+                    role="radio"
+                    aria-checked={currentTask.type === type}
+                    onClick={() => updateTask(currentTaskIndex, { type })}
+                  >
                     {type}
-                  </option>
+                  </button>
                 ))}
-              </select>
-            </label>
+              </div>
+            </div>
             <label className="field">
               <span>Deadline de la tache</span>
               <input type="datetime-local" value={currentTask.deadline} onChange={(event) => updateTask(currentTaskIndex, { deadline: event.target.value })} />
@@ -342,9 +380,12 @@ export function PlanningFlow() {
               <p className="eyebrow">Etape 3</p>
               <h2 id="recap-title">Recapitulatif editable</h2>
             </div>
-            <button type="button" className="btn btn-tertiary" onClick={() => setStep("setup")}>
-              Modifier le cadre
-            </button>
+            <div className="recap-heading-actions">
+              {stepBars}
+              <button type="button" className="btn btn-tertiary" onClick={() => setStep("setup")}>
+                Modifier le cadre
+              </button>
+            </div>
           </div>
           <div className="recap-grid">
             {tasks.map((task, index) => (
@@ -360,14 +401,20 @@ export function PlanningFlow() {
                   </div>
                   <div>
                     <dt>Importance</dt>
-                    <dd>{task.importance}/10</dd>
+                    <dd>
+                      <span className="importance-badge">{task.importance}/10</span>
+                    </dd>
                   </div>
                   <div>
                     <dt>Deadline</dt>
                     <dd>{task.deadline || "A completer"}</dd>
                   </div>
                 </dl>
-                <button type="button" className="edit-button" onClick={() => editTask(index)}>
+                <button type="button" className="edit-button" onClick={() => editTask(index)} aria-label={`Modifier la tache ${index + 1}`}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+                    <path d="m14 8 2 2" />
+                  </svg>
                   Modifier
                 </button>
               </article>
@@ -416,14 +463,21 @@ export function PlanningFlow() {
         </section>
       ) : null}
 
+      <footer className="planning-footer">Confidentialite: les donnees servent uniquement a generer ton planning et les alertes de securite restent prioritaires.</footer>
+
       <style jsx>{`
         .planning-page {
           display: grid;
           gap: 14px;
-          min-height: min(820px, calc(100vh - 150px));
+          width: 100%;
+          justify-items: center;
+          overflow: hidden;
+          border: 1px solid rgba(126, 61, 94, 0.14);
+          border-radius: 22px;
+          background: #fdfbfc;
+          box-shadow: 0 24px 60px rgba(35, 28, 51, 0.12);
         }
 
-        .planning-shell-header,
         .welcome-panel,
         .form-panel,
         .recap-panel,
@@ -440,16 +494,18 @@ export function PlanningFlow() {
           justify-content: space-between;
           align-items: center;
           gap: 16px;
-          padding: 18px;
-          background:
-            linear-gradient(115deg, rgba(242, 173, 178, 0.32), transparent 38%),
-            linear-gradient(145deg, #fff 0%, var(--fond-lavande) 100%);
+          width: 100%;
+          padding: 20px clamp(18px, 4vw, 30px);
+          background: linear-gradient(135deg, #7e3d5e 0%, #8a6889 34%, #5f6f8d 68%, #2e8bbf 100%);
+          color: #fff;
         }
 
         .planning-shell-header :global(.brand-logo) {
           width: 44px;
           height: 44px;
           flex: 0 0 auto;
+          background: rgba(255, 255, 255, 0.92);
+          box-shadow: inset 0 0 0 8px rgba(126, 61, 94, 0.1);
         }
 
         .eyebrow,
@@ -465,14 +521,22 @@ export function PlanningFlow() {
           color: var(--bleu-ciel);
           font-size: 12px;
           font-weight: 800;
-          letter-spacing: 0;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
+        }
+
+        .planning-shell-header .eyebrow {
+          color: rgba(255, 255, 255, 0.82);
         }
 
         h1,
         h2,
         h3 {
           color: var(--plum);
+        }
+
+        .planning-shell-header h1 {
+          color: #fff;
         }
 
         h1 {
@@ -485,7 +549,8 @@ export function PlanningFlow() {
 
         .safety-banner,
         .form-error {
-          margin: 0;
+          margin: 0 clamp(16px, 3vw, 24px);
+          width: min(calc(100% - 32px), 720px);
           padding: 12px 14px;
           border-radius: 14px;
           font-size: 14px;
@@ -509,8 +574,10 @@ export function PlanningFlow() {
           grid-template-columns: minmax(0, 1fr) auto;
           align-items: end;
           gap: 28px;
-          min-height: 340px;
-          padding: clamp(20px, 5vw, 42px);
+          width: min(calc(100% - 32px), 720px);
+          min-height: 220px;
+          margin: 0 clamp(16px, 3vw, 24px);
+          padding: clamp(20px, 4vw, 34px);
           background:
             linear-gradient(135deg, rgba(126, 61, 94, 0.08), transparent 44%),
             linear-gradient(160deg, #fff 0%, #fdfbfc 52%, #f5f0f7 100%);
@@ -533,7 +600,17 @@ export function PlanningFlow() {
         .result-panel {
           display: grid;
           gap: 20px;
+          width: min(calc(100% - 32px), 680px);
+          margin: 0 clamp(16px, 3vw, 24px);
           padding: clamp(16px, 3vw, 24px);
+        }
+
+        .recap-panel {
+          width: min(calc(100% - 32px), 720px);
+        }
+
+        .result-panel {
+          width: min(calc(100% - 32px), 960px);
         }
 
         .step-heading {
@@ -541,6 +618,29 @@ export function PlanningFlow() {
           justify-content: space-between;
           align-items: start;
           gap: 16px;
+        }
+
+        .step-heading h2 {
+          margin-top: 4px;
+        }
+
+        .step-bars {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(38px, 1fr));
+          gap: 8px;
+          width: min(220px, 38vw);
+          padding-top: 6px;
+        }
+
+        .step-bars span {
+          height: 8px;
+          border-radius: 999px;
+          background: #ece5f0;
+          box-shadow: inset 0 0 0 1px rgba(126, 61, 94, 0.08);
+        }
+
+        .step-bars .is-active {
+          background: linear-gradient(90deg, #f7bac1 0%, #8ec0c9 45%, #7e3d5e 100%);
         }
 
         .field-grid,
@@ -559,8 +659,9 @@ export function PlanningFlow() {
         }
 
         .field span {
-          color: var(--texte-gris);
+          color: var(--plum);
           font-size: 13px;
+          font-weight: 800;
         }
 
         input,
@@ -576,20 +677,130 @@ export function PlanningFlow() {
           outline: none;
         }
 
+        input::placeholder {
+          color: #8a92a1;
+        }
+
         input:focus,
         select:focus {
           border-color: var(--bleu-ciel);
           box-shadow: 0 0 0 3px rgba(46, 139, 191, 0.14);
         }
 
+        .counter-control {
+          display: grid;
+          grid-template-columns: 46px minmax(72px, 1fr) 46px;
+          align-items: center;
+          min-height: 52px;
+          overflow: hidden;
+          border: 1.5px solid var(--bordure);
+          border-radius: 16px;
+          background: var(--fond-creme);
+        }
+
+        .counter-control input {
+          min-height: 50px;
+          border: 0;
+          border-radius: 0;
+          background: transparent;
+          text-align: center;
+          font-family: "Poppins", sans-serif;
+          font-size: 20px;
+          font-weight: 800;
+          color: var(--plum);
+          padding: 0 8px;
+        }
+
+        .counter-control button {
+          height: 100%;
+          min-height: 50px;
+          border: 0;
+          background: #fff;
+          color: var(--plum);
+          cursor: pointer;
+          font: inherit;
+          font-size: 24px;
+          font-weight: 800;
+        }
+
+        .counter-control button:disabled {
+          color: #c5b7cc;
+          cursor: not-allowed;
+        }
+
         input[type="range"] {
+          height: 12px;
           padding: 0;
           accent-color: var(--plum);
-          background: transparent;
+          border: 0;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #8ec0c9 0%, #f7bac1 50%, #7e3d5e 100%);
+          appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+          width: 22px;
+          height: 22px;
+          border: 3px solid #fff;
+          border-radius: 50%;
+          background: var(--plum);
+          box-shadow: 0 4px 12px rgba(126, 61, 94, 0.26);
+          appearance: none;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border: 3px solid #fff;
+          border-radius: 50%;
+          background: var(--plum);
+          box-shadow: 0 4px 12px rgba(126, 61, 94, 0.26);
         }
 
         .importance-field {
           grid-column: 1 / -1;
+        }
+
+        .type-chip-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .type-chip {
+          min-height: 40px;
+          border: 1.5px solid #e2d9e8;
+          border-radius: 999px;
+          background: #fff;
+          color: var(--texte-gris);
+          cursor: pointer;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 800;
+          padding: 9px 13px;
+          transition:
+            background 140ms ease,
+            border-color 140ms ease,
+            color 140ms ease,
+            transform 140ms ease;
+        }
+
+        .type-chip:hover {
+          transform: translateY(-1px);
+          border-color: #cbbbd4;
+        }
+
+        .type-chip.is-selected {
+          border-color: var(--plum);
+          background: var(--plum);
+          color: #fff;
+          box-shadow: 0 8px 18px rgba(126, 61, 94, 0.18);
+        }
+
+        .progress-stack {
+          display: grid;
+          gap: 10px;
+          justify-items: end;
         }
 
         .progress {
@@ -634,6 +845,12 @@ export function PlanningFlow() {
           gap: 12px;
         }
 
+        .recap-heading-actions {
+          display: grid;
+          justify-items: end;
+          gap: 10px;
+        }
+
         .task-card {
           display: grid;
           gap: 12px;
@@ -641,6 +858,7 @@ export function PlanningFlow() {
           border-radius: 16px;
           padding: 14px;
           background: linear-gradient(180deg, #fff 0%, var(--fond-creme) 100%);
+          box-shadow: 0 12px 24px rgba(35, 28, 51, 0.06);
         }
 
         .task-index {
@@ -682,7 +900,23 @@ export function PlanningFlow() {
           overflow-wrap: anywhere;
         }
 
+        .importance-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 48px;
+          min-height: 26px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #f7bac1, #7e3d5e);
+          color: #fff;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
         .edit-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
           justify-self: start;
           border: 1px solid #d7cbe0;
           border-radius: 999px;
@@ -695,9 +929,21 @@ export function PlanningFlow() {
           padding: 8px 12px;
         }
 
+        .edit-button svg {
+          width: 15px;
+          height: 15px;
+          fill: none;
+          stroke: currentColor;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-width: 2;
+        }
+
         .loading-panel {
           place-items: center;
-          min-height: 360px;
+          width: min(calc(100% - 32px), 560px);
+          min-height: 230px;
+          margin: 0 clamp(16px, 3vw, 24px);
           padding: 24px;
           text-align: center;
         }
@@ -707,21 +953,62 @@ export function PlanningFlow() {
         }
 
         .spinner {
-          width: 52px;
-          height: 52px;
+          position: relative;
+          width: 72px;
+          height: 72px;
           border-radius: 50%;
-          border: 5px solid var(--fond-lavande);
-          border-top-color: var(--bleu-ciel);
-          animation: spin 900ms linear infinite;
+          background: conic-gradient(from 180deg, #8ec0c9, #f7bac1, #7e3d5e, #8ec0c9);
+          box-shadow: 0 0 0 10px rgba(126, 61, 94, 0.06);
+          animation: pulse-spin 1400ms ease-in-out infinite;
         }
 
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
+        .spinner::after {
+          content: "";
+          position: absolute;
+          inset: 9px;
+          border-radius: inherit;
+          background: #fff;
+        }
+
+        @keyframes pulse-spin {
+          0%,
+          100% {
+            transform: rotate(0deg) scale(0.94);
+            opacity: 0.82;
+          }
+
+          50% {
+            transform: rotate(180deg) scale(1);
+            opacity: 1;
           }
         }
 
+        .planning-footer {
+          width: 100%;
+          padding: 0 clamp(18px, 4vw, 30px) 18px;
+          color: var(--texte-clair);
+          font-size: 12px;
+          line-height: 1.4;
+          text-align: center;
+        }
+
         @media (max-width: 760px) {
+          .planning-page {
+            border-radius: 16px;
+          }
+
+          .safety-banner,
+          .form-error,
+          .welcome-panel,
+          .form-panel,
+          .recap-panel,
+          .result-panel,
+          .loading-panel {
+            width: calc(100% - 36px);
+            margin-left: 18px;
+            margin-right: 18px;
+          }
+
           .welcome-panel,
           .field-grid,
           .task-fields {
@@ -732,8 +1019,15 @@ export function PlanningFlow() {
             display: grid;
           }
 
+          .step-bars,
           .progress {
             width: 100%;
+          }
+
+          .progress-stack,
+          .recap-heading-actions {
+            width: 100%;
+            justify-items: stretch;
           }
 
           .actions {
@@ -743,6 +1037,10 @@ export function PlanningFlow() {
           .actions :global(.btn),
           .welcome-panel :global(.btn) {
             width: 100%;
+          }
+
+          .counter-control {
+            grid-template-columns: 44px minmax(64px, 1fr) 44px;
           }
         }
       `}</style>

@@ -285,6 +285,8 @@ h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; line-height: 1.2; }
 .app-main { padding: 29px 32px 32px 20px; overflow: hidden; }
 .app-main-header h1 { margin: 0 0 14px; font-size: 30px; color: var(--plum); }
 .app-main-content { width: 100%; display: grid; gap: 18px; }
+.chatbot-page-frame { min-height: calc(100vh - 61px); margin: -29px -32px -32px -20px; padding: clamp(18px, 4vw, 42px); background: #eae6f0; display: grid; align-items: start; }
+.chatbot-page-shell { width: min(100%, 1040px); margin: 0 auto; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .dashboard-greeting h2 { margin: 0; font-size: 34px; }
 .dashboard-label { margin: 0 0 6px; color: var(--texte-gris); }
@@ -354,6 +356,7 @@ h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; line-height: 1.2; }
   .sidebar-bottom { margin-top: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .app-main { padding: 22px 16px; }
   .app-main-content { max-width: none; }
+  .chatbot-page-frame { min-height: auto; margin: -22px -16px; padding: 16px; }
   .dashboard-grid, .dash-grid, .dash-bottom-grid { grid-template-columns: 1fr; }
 }
 
@@ -364,6 +367,7 @@ h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; line-height: 1.2; }
   .sidebar-nav,
   .sidebar-bottom { grid-template-columns: 1fr; }
   .sidebar-link { min-height: 42px; }
+  .chatbot-page-frame { padding: 12px; }
   .suggestion-banner { padding: 20px; grid-template-columns: 1fr; gap: 8px; }
   .article-preview-card { align-items: flex-start; padding: 20px; }
 }
